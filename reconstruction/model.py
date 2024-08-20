@@ -1,3 +1,5 @@
+import numpy as np
+
 from reconstruction import ReconstructionResult
 
 class ReconstructionModel:
@@ -10,7 +12,7 @@ class ReconstructionModel:
 
         self.result = ReconstructionResult(self.number_of_elements)
 
-    def __call__(self, marker_data) -> ReconstructionResult:
+    def __call__(self, marker_data: np.ndarray) -> ReconstructionResult:
         # update the result with the new marker data
 
         return self.result

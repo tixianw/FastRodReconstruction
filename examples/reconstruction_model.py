@@ -1,14 +1,18 @@
 import sys
 sys.path.append('../')
 
+import numpy as np
+
 from reconstruction import ReconstructionModel
 
 def main():
     # Load the model
-    model = ReconstructionModel('model.pkl')
+    model = ReconstructionModel('model.pt')
+
+    marker_data = np.zeros(45)
 
     # Create a new instance of the model
-    result = model('marker_data.pkl')
+    result = model(marker_data)
 
     print(result)
 
