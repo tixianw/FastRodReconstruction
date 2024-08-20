@@ -4,17 +4,25 @@ This README provides instructions for setting up and running a fast reconstructi
 
 ## Prerequisites
 
-- Docker installed on your system
+- Docker installed on your system: [ros2-vicon](https://github.com/hanson-hschang/ros2-vicon)
 - Three terminal windows available
+- Connect the Vicon wifi if available
 
-## Step 1: Run the Vicon Client
+## Step 1: Run the Vicon Client 
 
-In the first terminal, run the following command to start the Vicon client:
+### Option 1: Vicon System
+If you have connected to the Vicon wifi, then in the first terminal, run the following command to start the Vicon client:
 ```
 docker run -it --rm hansonhschang/ros2-vicon:latest ros2 launch vicon_receiver client.launch.py
 ```
-
 This command launches a Vicon client within a Docker container.
+
+### Option 2: Mock Vicon System
+If you don't have access to the Vicon,  then in the first terminal, run the following command to start the Vicon mock client:
+```
+docker run -it --rm hansonhschang/ros2-vicon:latest ros2 launch vicon_receiver mock_client.launch.py
+```
+This command launches a Vicon mock client within a Docker container.
 
 ## Step 2: Start the ROS2 Vicon Container
 
@@ -22,12 +30,12 @@ In the second terminal, run:
 ```
 docker run -it --rm hansonhschang/ros2-vicon
 ```
-This creates a container from the image and the terminal will show up like the following and gives us the id `<container_id>` of the container. 
+This creates a container from the image and the terminal will show up like the following and gives the id `<container_id>` of the container. 
 In this case the id is `7cb5009f616f`.
 ```
 root@7cb5009f616f:/#  
 ```
-Once inside the container, change to the Vicon workspace directory:
+Once inside the container, change directory to the Vicon workspace:
 ```
 cd vicon_ws
 ```
@@ -42,16 +50,16 @@ Replace `<container_id>` with the ID of the container you noted in Step 2.
 
 ## Step 4: Run the Reconstruction Node
 
-Return to the second terminal where you started the ROS2 Vicon container. Now that you've copied the `reconstruction_node.py` script into the container, you can run it:
+Return to the second terminal where you started the ROS2 Vicon container. 
+Now that you've copied the `reconstruction_node.py` script into the container, you can run it:
 ```
 python3 reconstruction_node.py
 ```
-
 This command will start the reconstruction node, which will begin listening to multiple ROS2 topics related to the Vicon system, and run the fast reconstruction.
 
 ## Additional Information
 
-- The first container runs a Vicon client, which access the data provided by a Vicon motion capture system.
+- The first container runs a Vicon client, which access the data provided by a Vicon motion capture system (or a mock one).
 - The second container is the main ROS2 environment where you'll run your reconstruction-related nodes and scripts.
 - The `reconstruction_node.py` script is copied into the main container, allowing you to listen to multiple ROS2 topics related to the Vicon data, and run the fast reconstruction.
 
