@@ -14,13 +14,20 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import String as StdString  # For publishing test_output
+from std_msgs.msg import Float32MultiArray, MultiArrayDimension  # For publishing numpy array
+
+import numpy as np
 
 class MultiSubscriberNode(Node):
     def __init__(self):
         super().__init__('multi_subscriber_node')
 
-        # Publisher to "test_topic"
-        self.publisher_ = self.create_publisher(StdString, 'test_topic', 10)
+        # Publisher to "numpy_array_topic"
+        self.numpy_publisher = self.create_publisher(
+            Float32MultiArray,
+            'numpy_array_topic',
+            1
+        )
 
         # Subscribe to the first topic
         self.subscription_1 = self.create_subscription(
@@ -56,14 +63,28 @@ class MultiSubscriberNode(Node):
 
     def process_and_publish(self):
         if self.data_1 and self.data_2:
-            # Example processing: Combine data from both topics
-            processed_data = f'Processed data: {self.data_1} and {self.data_2}'
-            msg = StdString()
-            msg.data = processed_data
+            # Create a 2D NumPy array
+            np_array = np.array([
+                [self.data_1, self.data_2],
+                [self.data_1, self.data_2],
+            ])
+
+            # Create Float32MultiArray message
+            msg = Float32MultiArray()
+
+            # Set up MultiArrayLayout
+            msg.layout.dim = [
+                MultiArrayDimension(label="rows", size=np_array.shape[0], stride=np_array.shape[0] * np_array.shape[1]),
+                MultiArrayDimension(label="cols", size=np_array.shape[1], stride=np_array.shape[1])
+            ]
+            msg.layout.data_offset = 0
+
+            # Flatten the array and convert to list
+            msg.data = np_array.flatten().tolist()
 
             # Publish the processed data
-            self.publisher_.publish(msg)
-            self.get_logger().info(f'Published: {processed_data}')
+            self.numpy_publisher.publish(msg)
+            self.get_logger().info(f'Published 2D NumPy array with shape {np_array}')
 
             # Optionally, reset data to avoid re-publishing the same data
             self.data_1 = None
@@ -73,9 +94,14 @@ class MultiSubscriberNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = MultiSubscriberNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        # Destroy the node explicitly
+        # (optional - otherwise it will be done automatically
+        # when the garbage collector destroys the node object)
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
