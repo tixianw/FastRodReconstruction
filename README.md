@@ -13,14 +13,14 @@ This README provides instructions for setting up and running a fast reconstructi
 ### Option 1: Vicon System
 If you have connected to the Vicon wifi, then in the first terminal, run the following command to start the Vicon client:
 ```
-docker run -it --rm hansonhschang/ros2-vicon:latest ros2 launch vicon_receiver client.launch.py
+docker run -it --rm hansonhschang/ros2-vicon ros2 launch vicon_receiver client.launch.py
 ```
 This command launches a Vicon client within a Docker container.
 
 ### Option 2: Mock Vicon System
 If you don't have access to the Vicon,  then in the first terminal, run the following command to start the Vicon mock client:
 ```
-docker run -it --rm hansonhschang/ros2-vicon:latest ros2 launch vicon_receiver mock_client.launch.py
+docker run -it --rm hansonhschang/ros2-vicon ros2 launch vicon_receiver mock_client.launch.py
 ```
 This command launches a Vicon mock client within a Docker container.
 
