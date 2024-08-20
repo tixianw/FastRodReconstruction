@@ -182,8 +182,8 @@ def main(args=None):
         '/vicon/TestSubject_1/TestSubject_1'
     ]
     subscription_topics = [
-        '/vicon_mock/TestSubject_0/CrossSection_0_0',
-        '/vicon_mock/TestSubject_0/CrossSection_0_1'
+        '/vicon_mock/CrossSection_0_0/CrossSection_0_0',
+        '/vicon_mock/CrossSection_0_1/CrossSection_0_1'
     ]
     node = ReconstructionNode(
         subscription_topics=subscription_topics,
