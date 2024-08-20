@@ -90,12 +90,19 @@ class ReconstructionNode(Node):
     def listener_callback_1(self, msg):
         self.data_1 = [msg.x_trans, msg.y_trans, msg.z_trans]
         self.data_1_frame_number = msg.frame_number
-        # self.get_logger().info(f'Received message from topic_1: {self.data_1}')
+
+        self.get_logger().info(f'{msg.frame_number}')
+        self.get_logger().info(f'  {msg.x_trans}')
+        self.get_logger().info(f'  {msg.y_trans}')
+        self.get_logger().info(f'  {msg.z_trans}')
+        self.get_logger().info(f'  {msg.x_rot}')
+        self.get_logger().info(f'  {msg.y_rot}')
+        self.get_logger().info(f'  {msg.z_rot}')
+        self.get_logger().info(f'  {msg.w}')
 
     def listener_callback_2(self, msg):
         self.data_2 = [msg.x_trans, msg.y_trans, msg.z_trans]
         self.data_2_frame_number = msg.frame_number
-        # self.get_logger().info(f'Received message from topic_2: {self.data_2}')
 
     def timer_callback(self):
         self.reconstruct()
