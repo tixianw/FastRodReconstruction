@@ -1,6 +1,9 @@
+import sys
+sys.path.append('../')
+
 import numpy as np
-from dataclasses import dataclass, field
 from typing import List
+from reconstruction import ReconstructionResult
 
 try:
     import rclpy
@@ -11,18 +14,6 @@ except ModuleNotFoundError:
     print('Could not import ROS2 modules. Make sure to source ROS2 workspace first.')
     import sys
     sys.exit(1)
-
-@dataclass
-class ReconstructionResult:
-    number_of_elements: int
-    position: np.ndarray = field(default=None, init=False)
-    director: np.ndarray = field(default=None, init=False)
-
-    def __post_init__(self):
-        # Initialize position as a (3, number_of_elements) numpy array
-        self.position = np.zeros((3, self.number_of_elements))
-        # Initialize director as a (3, 3, number_of_elements) numpy array
-        self.director = np.zeros((3, 3, self.number_of_elements))
 
 class ReconstructionNode(Node):
     def __init__(
