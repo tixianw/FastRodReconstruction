@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Callable
 from scipy.spatial.transform import Rotation
 
 try:
@@ -83,5 +83,24 @@ class PoseSubscriber:
     """
 
     topic: str
-    data: PoseMessage
-    subscription: rclpy.subscription.Subscription
+    callback: Callable[[Pose], None]
+    qos_profile: Union[rclpy.qos.QoSProfile, int]
+    node: Node
+
+    def __post_init__(self):
+        """
+        Initialize the PoseSubscriber object.
+        """
+        self.data = PoseMessage()
+        self.subscription = self.node.create_subscription(
+            msg_type=Pose,
+            topic=self.topic,
+            callback=self.callback,
+            qos_profile=self.qos_profile,
+        )
+
+    def __str__(self) -> str:
+        """
+        Return the string information of the PoseSubscriber
+        """
+        return f"PoseSubscriber(topic={self.topic}, data={self.data}, subscription={self.subscription})"
