@@ -31,7 +31,7 @@ class NDArrayDescriptor:
             raise ValueError(f"{self.name} must have shape {self.shape}")
         obj.__dict__[self.name] = value
 
-class PositionMsg:
+class PoseMsg:
     position = NDArrayDescriptor((3,))
     quaternion = NDArrayDescriptor((4,))
 
@@ -54,7 +54,7 @@ class PositionMsg:
         )
 
 @dataclass
-class PositionSubscriber:
+class PoseSubscriber:
     topic: str
-    data: PositionMsg
+    data: PoseMsg
     subscription: rclpy.subscription.Subscription

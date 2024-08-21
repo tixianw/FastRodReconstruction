@@ -1,1 +1,1 @@
-from .subscriber import PositionMsg, PositionSubscriber
+from .subscriber import PoseMsg, PoseSubscriber

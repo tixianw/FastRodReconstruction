@@ -5,12 +5,12 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import List
 from reconstruction import ReconstructionResult, ReconstructionModel
-from ros2_vicon import PositionMsg, PositionSubscriber
+from ros2_vicon import PoseMsg, PoseSubscriber
 
 try:
     import rclpy
     from rclpy.node import Node
-    from vicon_receiver.msg import Position
+    from vicon_receiver.msg import Position as Pose
     from std_msgs.msg import Float32MultiArray, MultiArrayDimension  # For publishing numpy array
 except ModuleNotFoundError:
     print('Could not import ROS2 modules. Make sure to source ROS2 workspace first.')
@@ -35,11 +35,11 @@ class ReconstructionNode(Node):
         # Create subscribers for each topic
         self.subscribers = []
         for i, topic in enumerate(self.subscription_topics):
-            subscriber = PositionSubscriber(
+            subscriber = PoseSubscriber(
                 topic=topic,
-                data=PositionMsg(),
+                data=PoseMsg(),
                 subscription=self.create_subscription(
-                    msg_type=Position,
+                    msg_type=Pose,
                     topic=topic,
                     callback=self.subscriber_callback_closure(i),
                     qos_profile=100,
