@@ -41,7 +41,7 @@ def coeff2strain(coeff, pca): # , nominal_shear=np.vstack([np.zeros([2,100]), np
 		# shear = np.hstack(strain[3:])
 	return kappa # [kappa, shear]
 
-def strain2posdir(strain, dl, nominal_shear=np.vstack([np.zeros([2,100]), np.ones(100)])):
+def strain2posdir(strain, dl, nominal_shear): # np.vstack([np.zeros([2,100]), np.ones(100)])
 	n_sample = len(strain) # len(strain[0])
 	n_elem = len(dl)
 	position = np.zeros([n_sample, 3, n_elem+1])
@@ -51,9 +51,9 @@ def strain2posdir(strain, dl, nominal_shear=np.vstack([np.zeros([2,100]), np.one
 		forward_path(dl, nominal_shear, strain[i], position[i], director[i]) # strain[1][i]
 	return [position, director]
 
-def coeff2posdir(coeff, pca, dl):
+def coeff2posdir(coeff, pca, dl, nominal_shear):
 	strain = coeff2strain(coeff, pca)
-	posdir = strain2posdir(strain, dl)
+	posdir = strain2posdir(strain, dl, nominal_shear)
 	return posdir
 
 @njit(cache=True)

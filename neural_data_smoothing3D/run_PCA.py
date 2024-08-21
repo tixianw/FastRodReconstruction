@@ -9,7 +9,6 @@ from tqdm import tqdm
 from numpy.linalg import eigh # eig
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.decomposition import PCA
-# from utils import coeff2curvature, curvature2position, _aver_kernel
 color = ['C'+str(i) for i in range(10)]
 
 class PCA:

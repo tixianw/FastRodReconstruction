@@ -1,22 +1,17 @@
 """
-Created on Aug 18, 2024
+Created on Aug 21, 2024
 @author: Tixian Wang
 """
 import sys
+sys.path.append('../')
 import numpy as np
 import numpy.random as npr
 import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader, Subset, random_split
 import torch.nn.functional as F
-from run_PCA import PCA
-from utils import coeff2strain_torch, coeff2posdir_torch, _aver
-# from numpy.linalg import eig
-# import matplotlib.pyplot as plt
-# from tqdm import tqdm
-
-# torch.manual_seed(2024)
-# npr.seed(2024)
+# from neural_data_smoothing3D import PCA
+from neural_data_smoothing3D.utils import coeff2strain_torch, coeff2posdir_torch, _aver
 
 class TensorConstants:
 	def __init__(self, bend_twist_stiff, idx_data_pts, dl, chi_r, chi_d, pca, input_size, output_size):
@@ -188,7 +183,7 @@ class CurvatureSmoothing3DModel:
 		self.test_loss /= (i + 1)
 		print(f'test loss: {self.test_loss:.8f}')
 	
-	def model_save(self, model_name):
+	def model_save(self, file_name):
 		torch.save({
 			'batch_size': self.batch_size,
 			'num_epochs': self.num_epochs,
@@ -196,7 +191,7 @@ class CurvatureSmoothing3DModel:
 			'model': self.net.state_dict(),
 			'optimizer': self.optimizer.state_dict(),
 			'losses': [self.train_losses, self.validation_losses, self.test_loss],
-			}, 'Data/model/'+model_name+'.pt'
+			}, file_name
 		)
 
 def main():
@@ -242,7 +237,7 @@ def main():
 	chi_d = 10**power_chi_d
 	chi_u = 0 # 1e-5
 
-	tensor_constants = TensorConstants(bend_twist_stiff, idx_data_pts, dl, chi_r, chi_u, pca, input_size, output_size)
+	tensor_constants = TensorConstants(bend_twist_stiff, idx_data_pts, dl, chi_r, chi_d, pca, input_size, output_size)
 	## Train the model
 	num_epochs = int(10)
 	batch_size = 128 # 128 # 100
@@ -251,7 +246,7 @@ def main():
 
 	model.model_train()
 
-	flag_save = True
+	flag_save = False
 	model_name = 'data_smoothing_model_br2_BS128'
 
 	if flag_save:

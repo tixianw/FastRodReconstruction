@@ -1,5 +1,5 @@
 """
-Created on Aug 18, 2024
+Created on Aug 21, 2024
 @author: Tixian Wang
 """
 import sys
@@ -10,20 +10,22 @@ import torch
 # from torch import nn, optim
 # import torch.nn.functional as F
 from time import perf_counter
-# from neural_data_smoothing3D import PCA, TensorConstants
+from neural_data_smoothing3D import PCA, TensorConstants
 from neural_data_smoothing3D import CurvatureSmoothing3DNet
 from neural_data_smoothing3D import tensor2numpyVec, coeff2strain, strain2posdir
 color = ['C'+str(i) for i in range(10)]
 np.random.seed(2024)
 
 
-choice = 0
-folder_name = 'Data/'
+choice = 1
+folder_name = '../neural_data_smoothing3D/Data/'
+test_folder = 'Data/'
 if choice == 0:
 	file_name = 'BR2_arm_data'
 	model_name = 'data_smoothing_model_br2_BS128'
 elif choice ==1:
-	pass
+	file_name = 'BR2_arm_data'
+	model_name = 'data_smoothing_model_br2_test'
 data = np.load(folder_name + file_name + '.npy', allow_pickle='TRUE').item()
 n_elem = data['model']['n_elem']
 L = data['model']['L']
@@ -35,8 +37,8 @@ idx_data_pts = data['idx_data_pts']
 pca = data['pca']
 
 ### test data
-test_data_file_name = '../examples/Data/training_data_set'
-training_data = np.load(folder_name + test_data_file_name + '.npy', allow_pickle='TRUE').item()
+test_data_file_name = 'training_data_set'
+training_data = np.load(test_folder + test_data_file_name + '.npy', allow_pickle='TRUE').item()
 input_data = training_data['input_data']
 true_pos = training_data['true_pos']
 true_dir = training_data['true_dir']
@@ -44,7 +46,10 @@ true_kappa = training_data['true_kappa']
 input_size = training_data['input_size']
 output_size = training_data['output_size']
 
-model = torch.load(folder_name + 'model/'+ model_name +'.pt')
+if choice == 0:
+	model = torch.load(folder_name + 'model/'+ model_name +'.pt')
+elif choice == 1:
+	model = torch.load(test_folder + 'model/'+ model_name +'.pt')
 num_epochs = model['num_epochs']
 batch_size = model['batch_size']
 tensor_constants = model['tensor_constants']

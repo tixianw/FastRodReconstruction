@@ -1,5 +1,5 @@
 """
-Created on Aug 5, 2024
+Created on Aug 21, 2024
 @author: Tixian Wang
 """
 import sys
@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 # import torch
 import numpy.random as npr
 from tqdm import tqdm
-# from neural_data_smoothing3D import PCA
+from neural_data_smoothing3D import PCA
 from neural_data_smoothing3D import coeff2strain, coeff2posdir, pos_dir_to_input
 color = ['C'+str(i) for i in range(20)]
 
 
 def main():
-	folder_name = 'Data/'
+	folder_name = '../neural_data_smoothing3D/Data/'
 	file_name = 'BR2_arm_data' # 'pyelastica_arm_data' # 
 	data = np.load(folder_name + file_name + '.npy', allow_pickle='TRUE').item()
 
@@ -106,8 +106,7 @@ def main():
 			'true_kappa': strain_rand,
 			'true_shear': nominal_shear,
 		}
-		np.save('Data/training_data_set.npy', training_data) # training_data_set1
-	
+		np.save('Data/training_data_set.npy', training_data)
 
 if __name__ == "__main__":
 	main()
