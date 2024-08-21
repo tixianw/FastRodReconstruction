@@ -48,11 +48,12 @@ class PoseMsg:
         return np.array([self.position, self.position, self.position])
     
     def __repr__(self) -> str:
-        return (f"\nPositionMsg(\n"
-                f"    frame_number={self.frame_number},\n"
-                f"    position={np.array2string(self.position, precision=4, suppress_small=True)},\n"
-                f"    quaternion={np.array2string(self.quaternion, precision=4, suppress_small=True)},\n"
-                f")"
+        return (
+            f"\nPositionMsg(\n"
+            f"    frame_number={self.frame_number},\n"
+            f"    position={np.array2string(self.position, precision=4, suppress_small=True)},\n"
+            f"    quaternion={np.array2string(self.quaternion, precision=4, suppress_small=True)},\n"
+            f")"
         )
 
 
