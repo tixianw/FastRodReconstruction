@@ -67,7 +67,7 @@ def main():
 	model_name = 'data_smoothing_model_br2_test'
 
 	if flag_save:
-		model.model_save('Data/' + model_name + '.pt')
+		model.model_save('Data/Model/' + model_name + '.pt')
 
 if __name__ == '__main__':
 	main()

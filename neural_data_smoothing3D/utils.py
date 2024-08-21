@@ -4,7 +4,7 @@ Created on Aug 18, 2024
 """
 import numpy as np
 import torch
-from tqdm import tqdm
+# from tqdm import tqdm
 from numba import njit
 
 def tensor2numpyVec(tensor):
@@ -56,7 +56,7 @@ def coeff2posdir(coeff, pca, dl, nominal_shear):
 	posdir = strain2posdir(strain, dl, nominal_shear)
 	return posdir
 
-@njit(cache=True)
+# @njit(cache=True)
 def forward_path(dl, shear, kappa, position_collection, director_collection):
 	for i in range(dl.shape[0] - 1):
 		next_position(
@@ -71,7 +71,7 @@ def forward_path(dl, shear, kappa, position_collection, director_collection):
 		position_collection[:, -2:],
 	)
 
-@njit(cache=True)
+# @njit(cache=True)
 def next_position(director, delta, positions):
 	positions[:, 1] = positions[:, 0]
 	for index_i in range(3):
@@ -79,7 +79,7 @@ def next_position(director, delta, positions):
 			positions[index_i, 1] += director[index_j, index_i] * delta[index_j]
 	return
 
-@njit(cache=True)
+# @njit(cache=True)
 def next_director(axis, directors):
 	Rotation = get_rotation_matrix(axis)
 	for index_i in range(3):
@@ -91,7 +91,7 @@ def next_director(axis, directors):
 				)
 	return
 
-@njit(cache=True)
+# @njit(cache=True)
 def get_rotation_matrix(axis):
 	angle = np.sqrt(axis[0] ** 2 + axis[1] ** 2 + axis[2] ** 2)
 

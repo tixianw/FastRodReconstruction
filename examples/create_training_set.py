@@ -48,7 +48,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e5)
+	n_training_data = int(1e2)
 	coeffs_rand = npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	# coeffs_rand = npr.uniform(coeffs_low, coeffs_high, size=(n_training_data, output_size))
 
@@ -106,7 +106,7 @@ def main():
 			'true_kappa': strain_rand,
 			'true_shear': nominal_shear,
 		}
-		np.save('Data/training_data_set.npy', training_data)
+		np.save('Data/training_data_set2.npy', training_data)
 
 if __name__ == "__main__":
 	main()

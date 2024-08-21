@@ -6,9 +6,9 @@ import sys
 sys.path.append('../')
 import numpy as np
 import matplotlib.pyplot as plt
-# import torch
 import numpy.random as npr
-from tqdm import tqdm
+# import torch
+# from tqdm import tqdm
 # from neural_data_smoothing3D import PCA
 from neural_data_smoothing3D import coeff2strain, coeff2posdir, pos_dir_to_input
 color = ['C'+str(i) for i in range(20)]
