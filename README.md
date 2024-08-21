@@ -1,12 +1,12 @@
 # FastDataSmoothing
 
-This README provides instructions for setting up and running a fast reconstruction on a ROS2 with Vicon system using Docker containers. Follow these steps to get the system up and running.
+This provides instructions for setting up and running a fast reconstruction on a ROS2 with Vicon system using Docker containers. Follow these steps to get the system up and running.
 
 ## Prerequisites
 
 - Docker installed on your system: [ros2-vicon](https://github.com/hanson-hschang/ros2-vicon)
 - Three terminal windows available
-- Connect the Vicon wifi if available
+- Connect to the Vicon wifi if available
 
 ## Step 1: Run the Vicon Client 
 
@@ -18,7 +18,7 @@ docker run -it --rm hansonhschang/ros2-vicon ros2 launch vicon_receiver client.l
 This command launches a Vicon client within a Docker container.
 
 ### Option 2: Mock Vicon System
-If you don't have access to the Vicon,  then in the first terminal, run the following command to start the Vicon mock client:
+If you don't have access to the Vicon, then in the first terminal, run the following command to start the Vicon mock client:
 ```
 docker run -it --rm hansonhschang/ros2-vicon ros2 launch vicon_receiver mock_client.launch.py
 ```
@@ -38,10 +38,11 @@ root@7cb5009f616f:/#
 
 ## Step 3: Copy the Reconstruction Node
 
-In the third terminal, use the following command to copy two folders into the running container:
+In the third terminal, use the following commands to copy folders into the running container:
 ```
-docker cp ./examples <container_id>:/vicon_ws
+docker cp ./ros2_vicon <container_id>:/vicon_ws
 docker cp ./reconstruction <container_id>:/vicon_ws
+docker cp ./examples <container_id>:/vicon_ws
 ```
 Replace `<container_id>` with the ID of the container you noted in Step 2.
 
