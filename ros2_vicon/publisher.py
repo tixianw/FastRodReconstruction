@@ -38,7 +38,7 @@ class NDArrayMessage:
         self.__message.data = data.flatten().tolist()
         return self.__message
     
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return the string information of the NDArrayMessage
         """
@@ -59,27 +59,27 @@ class NDArrayPublisher:
     node: Node
 
     def __post_init__(self):
-        self.message = NDArrayMessage(
+        self.__message = NDArrayMessage(
             shape=self.shape,
             axis_labels=self.axis_labels,
         )
-        self.publishing = self.node.create_publisher(
-            msg_type=self.message.TYPE,
+        self.__publishing = self.node.create_publisher(
+            msg_type=self.__message.TYPE,
             topic=self.topic,
             qos_profile=self.qos_profile,
         )
 
-    def publish(self, data: np.ndarray):
-        self.publishing.publish(
-            self.message(data)
+    def publish(self, data: np.ndarray) -> None:
+        self.__publishing.publish(
+            self.__message(data)
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return the string information of the NDArrayPublisher
         """
         return (
             f"NDArrayPublisher(topic={self.topic}, "
-            f"message={self.message}, "
-            f"publishing={self.publishing})"
+            f"message={self.__message}, "
+            f"publishing={self.__publishing})"
         )

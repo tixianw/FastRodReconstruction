@@ -3,7 +3,7 @@ sys.path.append('../')
 
 import numpy as np
 from collections import defaultdict
-from typing import Tuple
+from typing import Tuple, List
 from reconstruction import ReconstructionResult
 from ros2_vicon import PoseSubscriber, NDArrayPublisher
 
@@ -31,7 +31,7 @@ class ReconstructionNode(Node):
 
         # Initialize subscribers
         self.get_logger().info('- Subcribers initializing...')
-        self.__subscribers = []
+        self.__subscribers: List[PoseSubscriber] = []
         for i, topic in enumerate(self.__subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
@@ -72,11 +72,9 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
-            self.__subscribers[i].message.frame_number = msg.frame_number
-            self.__subscribers[i].message.position = [msg.x_trans, msg.y_trans, msg.z_trans]
-            self.__subscribers[i].message.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
-            
+            self.__subscribers[i].read(msg)            
             self.get_logger().info(f'{self.__subscribers[i]}')
+
             # self.get_logger().info(f'{msg.frame_number}')
             # self.get_logger().info(f'  {msg.x_trans}')
             # self.get_logger().info(f'  {msg.y_trans}')
@@ -94,12 +92,14 @@ class ReconstructionNode(Node):
         self.publish_director(self.result.directors)
 
     def reconstruct(self):
+        # TODO: Call the reconstruction algorithm
+        
         # Calculate position
-        self.result.position[:, 0] = self.__subscribers[0].data.position
-        self.result.position[:, 1] = self.__subscribers[1].data.position
+        self.result.position[:, 0] = self.__subscribers[0].messgae.position
+        self.result.position[:, 1] = self.__subscribers[1].messgae.position
         # Calculate director
-        self.result.directors[:, :, 0] = self.__subscribers[0].data.directors
-        self.result.directors[:, :, 1] = self.__subscribers[1].data.directors
+        self.result.directors[:, :, 0] = self.__subscribers[0].messgae.directors
+        self.result.directors[:, :, 1] = self.__subscribers[1].messgae.directors
 
     def publish_position(self, position: np.ndarray):
         self.__publishers['position'].publish(position)
