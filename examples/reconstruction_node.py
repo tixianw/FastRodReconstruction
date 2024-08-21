@@ -27,12 +27,14 @@ class ReconstructionNode(Node):
         model: ReconstructionModel = None,
     ):
         super().__init__('reconstruction_node')
+        self.get_logger().info('Reconstruction node initializing...')
 
         self.subscription_topics = subscription_topics
         self.reconstruction_rate = reconstruction_rate
         self.model = model
 
         # Create subscribers for each topic
+        self.get_logger().info('- Subcribers initializing...')
         self.subscribers = []
         for i, topic in enumerate(self.subscription_topics):
             subscriber = PoseSubscriber(
@@ -46,6 +48,9 @@ class ReconstructionNode(Node):
                 )
             )
             self.subscribers.append(subscriber)
+
+        # Initialize publishers
+        self.get_logger().info('- Publishers initializing...')
 
         # Publisher to "reconstruction/position" topic
         self.publisher_position = self.create_publisher(
@@ -70,6 +75,7 @@ class ReconstructionNode(Node):
         self.result = ReconstructionResult(
             number_of_elements=reconstructed_elements,
         )
+
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
@@ -171,7 +177,11 @@ def main(args=None):
     ]
     subscription_topics = [
         '/vicon_mock/CrossSection_0_0/CrossSection_0_0',
-        '/vicon_mock/CrossSection_0_1/CrossSection_0_1'
+        '/vicon_mock/CrossSection_0_1/CrossSection_0_1',
+        '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
+        '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
+        '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
+        '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
     ]
     node = ReconstructionNode(
         subscription_topics=subscription_topics,
