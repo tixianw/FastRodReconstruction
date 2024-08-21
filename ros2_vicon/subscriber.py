@@ -9,11 +9,12 @@ except ModuleNotFoundError:
     import sys
     sys.exit(1)
 
+
 class NDArrayDescriptor:
     def __init__(self, shape):
         self.shape = shape
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, owner: type, name: str) -> None:
         self.name = "__" + name
 
     def __get__(self, obj, objtype=None) -> np.ndarray:
@@ -31,6 +32,7 @@ class NDArrayDescriptor:
             raise ValueError(f"{self.name} must have shape {self.shape}")
         obj.__dict__[self.name] = value
 
+
 class PoseMsg:
     position = NDArrayDescriptor((3,))
     quaternion = NDArrayDescriptor((4,))
@@ -42,16 +44,18 @@ class PoseMsg:
         self.quaternion = np.zeros(4)
 
     @property
-    def directors(self):
+    def directors(self) -> np.ndarray:
+        # TODO: Implement quaternion to directors conversion
         return np.array([self.position, self.position, self.position])
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f"\nPositionMsg(\n"
                 f"    frame_number={self.frame_number},\n"
                 f"    position={np.array2string(self.position, precision=4, suppress_small=True)},\n"
                 f"    quaternion={np.array2string(self.quaternion, precision=4, suppress_small=True)},\n"
                 f")"
         )
+
 
 @dataclass
 class PoseSubscriber:
