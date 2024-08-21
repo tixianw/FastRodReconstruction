@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
+from typing import Union
 
 try:
     import rclpy
@@ -15,22 +16,20 @@ class NDArrayDescriptor:
         self.shape = shape
 
     def __set_name__(self, owner: type, name: str) -> None:
-        self.name = "__" + name
+        self.private_name = "__" + name
 
-    def __get__(self, obj, objtype=None) -> np.ndarray:
-        if obj is None:
-            return self
-        return obj.__dict__[self.name]
+    def __get__(self, obj: object, objtype: type) -> np.ndarray:
+        value: np.ndarray = getattr(obj, self.private_name)
+        return value
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: object, value: Union[np.ndarray, list]) -> None:
+        if isinstance(value, list):
+            value = np.array(value)
         if not isinstance(value, np.ndarray):
-            if isinstance(value, list):
-                value = np.array(value)
-            else:
-                raise TypeError(f"{self.name} must be a numpy array")
+            raise TypeError(f"{self.private_name} must be a numpy array or list")
         if value.shape != self.shape:
-            raise ValueError(f"{self.name} must have shape {self.shape}")
-        obj.__dict__[self.name] = value
+            raise ValueError(f"{self.private_name} must have shape {self.shape}")
+        setattr(obj, self.private_name, value)
 
 
 class PoseMsg:
