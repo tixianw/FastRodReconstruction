@@ -2,10 +2,10 @@ import sys
 sys.path.append('../')
 
 import numpy as np
-from dataclasses import dataclass, field
-from typing import List
+from collections import defaultdict
+from typing import Tuple
 from reconstruction import ReconstructionResult, ReconstructionModel
-from ros2_vicon import PoseMsg, PoseSubscriber
+from ros2_vicon import PoseMsg, PoseSubscriber, NDArrayMessage
 
 try:
     import rclpy
@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 class ReconstructionNode(Node):
     def __init__(
         self, 
-        subscription_topics: List[str], 
+        subscription_topics: Tuple[str], 
         reconstruction_rate: float = 60.0,
         reconstructed_elements: int = 100,
         model: ReconstructionModel = None,
@@ -29,14 +29,14 @@ class ReconstructionNode(Node):
         super().__init__('reconstruction_node')
         self.get_logger().info('Reconstruction node initializing...')
 
-        self.subscription_topics = subscription_topics
-        self.reconstruction_rate = reconstruction_rate
+        self.__subscription_topics = subscription_topics
+        self.__reconstruction_rate = reconstruction_rate
         self.model = model
 
-        # Create subscribers for each topic
+        # Initialize subscribers
         self.get_logger().info('- Subcribers initializing...')
-        self.subscribers = []
-        for i, topic in enumerate(self.subscription_topics):
+        self.__subscribers = []
+        for i, topic in enumerate(self.__subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
                 data=PoseMsg(),
@@ -47,28 +47,34 @@ class ReconstructionNode(Node):
                     qos_profile=100,
                 )
             )
-            self.subscribers.append(subscriber)
+            self.__subscribers.append(subscriber)
 
         # Initialize publishers
         self.get_logger().info('- Publishers initializing...')
-
-        # Publisher to "reconstruction/position" topic
-        self.publisher_position = self.create_publisher(
-            msg_type=Float32MultiArray,
-            topic='/reconstruction/position',
-            qos_profile=1,
-        )
-
-        # Publisher to "reconstruction/director" topic
-        self.publisher_director = self.create_publisher(
-            msg_type=Float32MultiArray,
-            topic='/reconstruction/director',
-            qos_profile=1,
-        )
+        self.__publishing_topics = {
+            'position': NDArrayMessage(
+                topic='/reconstruction/position',
+                shape=(3, reconstructed_elements), 
+                axis_labels=('position', 'element')
+            ),
+            'directors': NDArrayMessage(
+                topic='/reconstruction/directors',
+                shape=(3, 3, reconstructed_elements), 
+                axis_labels=('directors', 'director_index', 'element')
+            ),
+        }
+        self.__publishers = defaultdict(lambda: "No publisher")
+        for key, message in self.__publishing_topics.items():
+            publisher = self.create_publisher(
+                msg_type=message.TYPE,
+                topic=message.topic,
+                qos_profile=1,
+            )
+            self.__publishers[key] = publisher
 
         # Create a timer for publishing at reconstruction_rate Hz
-        self.timer = self.create_timer(
-            timer_period_sec=1/self.reconstruction_rate, 
+        self.__timer = self.create_timer(
+            timer_period_sec=1/self.__reconstruction_rate, 
             callback=self.timer_callback,
         )
 
@@ -79,11 +85,11 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
-            self.subscribers[i].data.frame_number = msg.frame_number
-            self.subscribers[i].data.position = [msg.x_trans, msg.y_trans, msg.z_trans]
-            self.subscribers[i].data.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
+            self.__subscribers[i].data.frame_number = msg.frame_number
+            self.__subscribers[i].data.position = [msg.x_trans, msg.y_trans, msg.z_trans]
+            self.__subscribers[i].data.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
             
-            self.get_logger().info(f'{self.subscribers[i]}')
+            self.get_logger().info(f'{self.__subscribers[i]}')
             # self.get_logger().info(f'{msg.frame_number}')
             # self.get_logger().info(f'  {msg.x_trans}')
             # self.get_logger().info(f'  {msg.y_trans}')
@@ -103,11 +109,11 @@ class ReconstructionNode(Node):
 
     def reconstruct(self):
         # Calculate position
-        self.result.position[:, 0] = self.subscribers[0].data.position
-        self.result.position[:, 1] = self.subscribers[1].data.position
+        self.result.position[:, 0] = self.__subscribers[0].data.position
+        self.result.position[:, 1] = self.__subscribers[1].data.position
         # Calculate director
-        self.result.directors[:, :, 0] = self.subscribers[0].data.directors
-        self.result.directors[:, :, 1] = self.subscribers[1].data.directors
+        self.result.directors[:, :, 0] = self.__subscribers[0].data.directors
+        self.result.directors[:, :, 1] = self.__subscribers[1].data.directors
 
     def publish_position(self, position: np.ndarray):
         # Create Float32MultiArray message
@@ -132,7 +138,7 @@ class ReconstructionNode(Node):
         msg.data = position.flatten().tolist()
 
         # Publish the processed data
-        self.publisher_position.publish(msg)
+        self.__publishers['position'].publish(msg)
 
     def publish_director(self, director: np.ndarray):
         # Create Float32MultiArray message
@@ -162,23 +168,23 @@ class ReconstructionNode(Node):
         msg.data = director.flatten().tolist()
 
         # Publish the processed data
-        self.publisher_director.publish(msg)
+        self.__publishers['directors'].publish(msg)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    subscription_topics = [
+    subscription_topics = (
         '/vicon/TestSubject_0/TestSubject_0',
         '/vicon/TestSubject_1/TestSubject_1'
-    ]
-    subscription_topics = [
+    )
+    subscription_topics = (
         '/vicon_mock/CrossSection_0_0/CrossSection_0_0',
         '/vicon_mock/CrossSection_0_1/CrossSection_0_1',
         '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
         '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
         '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
         '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
-    ]
+    )
     node = ReconstructionNode(
         subscription_topics=subscription_topics,
         reconstructed_elements=len(subscription_topics),
