@@ -72,9 +72,9 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
-            self.__subscribers[i].data.frame_number = msg.frame_number
-            self.__subscribers[i].data.position = [msg.x_trans, msg.y_trans, msg.z_trans]
-            self.__subscribers[i].data.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
+            self.__subscribers[i].message.frame_number = msg.frame_number
+            self.__subscribers[i].message.position = [msg.x_trans, msg.y_trans, msg.z_trans]
+            self.__subscribers[i].message.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
             
             self.get_logger().info(f'{self.__subscribers[i]}')
             # self.get_logger().info(f'{msg.frame_number}')

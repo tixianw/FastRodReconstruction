@@ -63,9 +63,9 @@ class PoseMessage:
         """
         return Rotation.from_quat(self.quaternion).as_matrix()
     
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """
-        Return the string representation of the PoseMsg object.
+        Return the string information of the PoseMsg object.
         """
         return (
             f"\nPoseMessage(\n"
@@ -91,9 +91,9 @@ class PoseSubscriber:
         """
         Initialize the PoseSubscriber object.
         """
-        self.data = PoseMessage()
-        self.subscription = self.node.create_subscription(
-            msg_type=Pose,
+        self.message = PoseMessage()
+        self.__subscription = self.node.create_subscription(
+            msg_type=self.message.TYPE,
             topic=self.topic,
             callback=self.callback,
             qos_profile=self.qos_profile,
@@ -103,4 +103,8 @@ class PoseSubscriber:
         """
         Return the string information of the PoseSubscriber
         """
-        return f"PoseSubscriber(topic={self.topic}, data={self.data}, subscription={self.subscription})"
+        return (
+            f"PoseSubscriber(topic={self.topic}, "
+            f"message={self.message}, "
+            f"subscription={self.__subscription})"
+        )
