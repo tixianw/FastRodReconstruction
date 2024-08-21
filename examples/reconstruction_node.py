@@ -5,7 +5,7 @@ import numpy as np
 from collections import defaultdict
 from typing import Tuple
 from reconstruction import ReconstructionResult
-from ros2_vicon import PoseSubscriber, NDArrayMessage, NDArrayPublisher
+from ros2_vicon import PoseSubscriber, NDArrayPublisher
 
 try:
     import rclpy
@@ -46,27 +46,17 @@ class ReconstructionNode(Node):
         self.__publishers = defaultdict(lambda: "No publisher")
         self.__publishers["position"] = NDArrayPublisher(
             topic='/reconstruction/position',
-            message=NDArrayMessage(
-                shape=(3, reconstructed_elements+1), 
-                axis_labels=('position', 'element')
-            ),
-            publishing=self.create_publisher(
-                msg_type=NDArrayMessage.TYPE,
-                topic='/reconstruction/position',
-                qos_profile=100,
-            )
+            shape=(3, reconstructed_elements+1), 
+            axis_labels=('position', 'element'),
+            qos_profile=100,
+            node=self,
         )
         self.__publishers["directors"] = NDArrayPublisher(
             topic='/reconstruction/directors',
-            message=NDArrayMessage(
-                shape=(3, 3, reconstructed_elements), 
-                axis_labels=('directors', 'director_index', 'element')
-            ),
-            publishing=self.create_publisher(
-                msg_type=NDArrayMessage.TYPE,
-                topic='/reconstruction/directors',
-                qos_profile=100,
-            )
+            shape=(3, 3, reconstructed_elements), 
+            axis_labels=('directors', 'director_index', 'element'),
+            qos_profile=100,
+            node=self,
         )
 
         # Create a timer for publishing at reconstruction_rate Hz

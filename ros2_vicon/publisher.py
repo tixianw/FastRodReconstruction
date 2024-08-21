@@ -1,6 +1,6 @@
 import numpy as np
-from typing import Tuple
-from dataclasses import dataclass, field
+from typing import Tuple, Union
+from dataclasses import dataclass
 
 try:
     import rclpy
@@ -43,15 +43,28 @@ class NDArrayMessage:
             f"\nNDArrayMessage(\n"
             f"    shape={self.shape},\n"
             f"    axis_labels={self.axis_labels},\n"
-            f"    data={np.array2string(self.__data, precision=4, suppress_small=True)}\n"  
+            f"    data=\n{np.array2string(self.__data, precision=4, suppress_small=True)}\n"  
             f")"
         )
 
 @dataclass
 class NDArrayPublisher:
     topic: str
-    message: NDArrayMessage
-    publishing: rclpy.publisher.Publisher
+    shape: Tuple[int]
+    axis_labels: Tuple[str]
+    qos_profile: Union[rclpy.qos.QoSProfile, int]
+    node: Node
+
+    def __post_init__(self):
+        self.message = NDArrayMessage(
+            shape=self.shape,
+            axis_labels=self.axis_labels,
+        )
+        self.publishing = self.node.create_publisher(
+            msg_type=NDArrayMessage.TYPE,
+            topic=self.topic,
+            qos_profile=self.qos_profile,
+        )
 
     def publish(self, data: np.ndarray):
         self.publishing.publish(
