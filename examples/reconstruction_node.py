@@ -2,8 +2,10 @@ import sys
 sys.path.append('../')
 
 import numpy as np
+from dataclasses import dataclass, field
 from typing import List
-from reconstruction import ReconstructionResult
+from reconstruction import ReconstructionResult, ReconstructionModel
+from ros2_vicon import PositionMsg, PositionSubscriber
 
 try:
     import rclpy
@@ -15,38 +17,35 @@ except ModuleNotFoundError:
     import sys
     sys.exit(1)
 
+
 class ReconstructionNode(Node):
     def __init__(
         self, 
         subscription_topics: List[str], 
         reconstruction_rate: float = 60.0,
         reconstructed_elements: int = 100,
+        model: ReconstructionModel = None,
     ):
-        super().__init__('multi_subscriber_node')
+        super().__init__('reconstruction_node')
 
-        # Store subscription topics
         self.subscription_topics = subscription_topics
-
-        # Reconstruction rate in Hz
         self.reconstruction_rate = reconstruction_rate
+        self.model = model
 
-        # Subscribe to the first topic
-        self.subscription_1 = self.create_subscription(
-            msg_type=Position,
-            topic=self.subscription_topics[0],
-            callback=self.listener_callback_1,
-            qos_profile=1,
-        )
-        self.subscription_1  # prevent unused variable warning
-
-        # Subscribe to the second topic
-        self.subscription_2 = self.create_subscription(
-            msg_type=Position,
-            topic=self.subscription_topics[1],
-            callback=self.listener_callback_2,
-            qos_profile=1,
-        )
-        self.subscription_2  # prevent unused variable warning
+        # Create subscribers for each topic
+        self.subscribers = []
+        for i, topic in enumerate(self.subscription_topics):
+            subscriber = PositionSubscriber(
+                topic=topic,
+                data=PositionMsg(),
+                subscription=self.create_subscription(
+                    msg_type=Position,
+                    topic=topic,
+                    callback=self.subscriber_callback_closure(i),
+                    qos_profile=100,
+                )
+            )
+            self.subscribers.append(subscriber)
 
         # Publisher to "reconstruction/position" topic
         self.publisher_position = self.create_publisher(
@@ -72,41 +71,41 @@ class ReconstructionNode(Node):
             number_of_elements=reconstructed_elements,
         )
 
-        # Store received messages (optional)
-        self.data_1 = np.zeros(3)
-        self.data_2 = np.zeros(3)
-        self.data_1_frame_number = None
-        self.data_2_frame_number = None
+    def subscriber_callback_closure(self, i: int):
+        def subscriber_callback(msg):
+            self.subscribers[i].data.frame_number = msg.frame_number
+            self.subscribers[i].data.position = [msg.x_trans, msg.y_trans, msg.z_trans]
+            self.subscribers[i].data.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
+            
+            self.get_logger().info(f'{self.subscribers[i]}')
+            # self.get_logger().info(f'{msg.frame_number}')
+            # self.get_logger().info(f'  {msg.x_trans}')
+            # self.get_logger().info(f'  {msg.y_trans}')
+            # self.get_logger().info(f'  {msg.z_trans}')
+            # self.get_logger().info(f'  {msg.x_rot}')
+            # self.get_logger().info(f'  {msg.y_rot}')
+            # self.get_logger().info(f'  {msg.z_rot}')
+            # self.get_logger().info(f'  {msg.w}')
 
-    def listener_callback_1(self, msg):
-        self.data_1 = [msg.x_trans, msg.y_trans, msg.z_trans]
-        self.data_1_frame_number = msg.frame_number
-
-        self.get_logger().info(f'{msg.frame_number}')
-        self.get_logger().info(f'  {msg.x_trans}')
-        self.get_logger().info(f'  {msg.y_trans}')
-        self.get_logger().info(f'  {msg.z_trans}')
-        self.get_logger().info(f'  {msg.x_rot}')
-        self.get_logger().info(f'  {msg.y_rot}')
-        self.get_logger().info(f'  {msg.z_rot}')
-        self.get_logger().info(f'  {msg.w}')
-
-    def listener_callback_2(self, msg):
-        self.data_2 = [msg.x_trans, msg.y_trans, msg.z_trans]
-        self.data_2_frame_number = msg.frame_number
+        return subscriber_callback
 
     def timer_callback(self):
         self.reconstruct()
         self.publish_position(self.result.position)
         self.publish_director(self.result.director)
+        # self.get_logger().info(f'Published reconstruction result: {self.result}')
 
     def reconstruct(self):
         # Calculate position
-        self.result.position[:, 0] = self.data_1
-        self.result.position[:, 1] = self.data_2
+        self.result.position[:, 0] = self.subscribers[0].data.position
+        self.result.position[:, 1] = self.subscribers[1].data.position
         # Calculate director
-        self.result.director[:, :, 0] = np.array([self.data_1, self.data_2, self.data_1])
-        self.result.director[:, :, 1] = np.array([self.data_2, self.data_1, self.data_2])
+        self.result.director[:, :, 0] = np.array(
+            [self.subscribers[0].data.position, self.subscribers[1].data.position, self.subscribers[0].data.position]
+        )
+        self.result.director[:, :, 1] = np.array(
+            [self.subscribers[1].data.position, self.subscribers[0].data.position, self.subscribers[1].data.position]
+        )
     
     def publish_position(self, position: np.ndarray):
         # Create Float32MultiArray message
@@ -132,7 +131,6 @@ class ReconstructionNode(Node):
 
         # Publish the processed data
         self.publisher_position.publish(msg)
-        self.get_logger().info(f'Published position: {position}')
 
     def publish_director(self, director: np.ndarray):
         # Create Float32MultiArray message
@@ -163,7 +161,6 @@ class ReconstructionNode(Node):
 
         # Publish the processed data
         self.publisher_director.publish(msg)
-        self.get_logger().info(f'Published director: {director}')
 
 
 def main(args=None):
