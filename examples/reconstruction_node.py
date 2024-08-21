@@ -4,8 +4,8 @@ sys.path.append('../')
 import numpy as np
 from collections import defaultdict
 from typing import Tuple
-from reconstruction import ReconstructionResult, ReconstructionModel
-from ros2_vicon import PoseMessage, PoseSubscriber, NDArrayMessage, NDArrayPublisher
+from reconstruction import ReconstructionResult
+from ros2_vicon import PoseSubscriber, NDArrayMessage, NDArrayPublisher
 
 try:
     import rclpy
@@ -22,14 +22,12 @@ class ReconstructionNode(Node):
         subscription_topics: Tuple[str], 
         reconstruction_rate: float = 60.0,
         reconstructed_elements: int = 100,
-        model: ReconstructionModel = None,
     ):
         super().__init__('reconstruction_node')
         self.get_logger().info('Reconstruction node initializing...')
 
         self.__subscription_topics = subscription_topics
         self.__reconstruction_rate = reconstruction_rate
-        self.model = model
 
         # Initialize subscribers
         self.get_logger().info('- Subcribers initializing...')
@@ -37,13 +35,9 @@ class ReconstructionNode(Node):
         for i, topic in enumerate(self.__subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
-                data=PoseMessage(),
-                subscription=self.create_subscription(
-                    msg_type=PoseMessage.TYPE,
-                    topic=topic,
-                    callback=self.subscriber_callback_closure(i),
-                    qos_profile=100,
-                )
+                callback=self.subscriber_callback_closure(i),
+                qos_profile=100,
+                node=self,
             )
             self.__subscribers.append(subscriber)
 
