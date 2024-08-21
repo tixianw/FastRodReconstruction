@@ -1,6 +1,6 @@
 import numpy as np
-from typing import Tuple
-from dataclasses import dataclass, field
+from typing import Tuple, Union
+from dataclasses import dataclass
 
 try:
     import rclpy
@@ -38,29 +38,48 @@ class NDArrayMessage:
         self.__message.data = data.flatten().tolist()
         return self.__message
     
-    def __repr__(self):
+    def __str__(self) -> str:
+        """
+        Return the string information of the NDArrayMessage
+        """
         return (
             f"\nNDArrayMessage(\n"
             f"    shape={self.shape},\n"
             f"    axis_labels={self.axis_labels},\n"
-            f"    data={np.array2string(self.__data, precision=4, suppress_small=True)}\n"  
+            f"    data=\n{np.array2string(self.__data, precision=4, suppress_small=True)}\n"  
             f")"
         )
 
 @dataclass
 class NDArrayPublisher:
     topic: str
-    message: NDArrayMessage
-    publishing: rclpy.publisher.Publisher
+    shape: Tuple[int]
+    axis_labels: Tuple[str]
+    qos_profile: Union[rclpy.qos.QoSProfile, int]
+    node: Node
 
-    def publish(self, data: np.ndarray):
-        self.publishing.publish(
-            self.message(data)
+    def __post_init__(self):
+        self.__message = NDArrayMessage(
+            shape=self.shape,
+            axis_labels=self.axis_labels,
+        )
+        self.__publishing = self.node.create_publisher(
+            msg_type=self.__message.TYPE,
+            topic=self.topic,
+            qos_profile=self.qos_profile,
         )
 
-    def __repr__(self):
+    def publish(self, data: np.ndarray) -> None:
+        self.__publishing.publish(
+            self.__message(data)
+        )
+
+    def __str__(self) -> str:
+        """
+        Return the string information of the NDArrayPublisher
+        """
         return (
             f"NDArrayPublisher(topic={self.topic}, "
-            f"message={self.message}, "
-            f"publishing={self.publishing})"
+            f"message={self.__message}, "
+            f"publishing={self.__publishing})"
         )

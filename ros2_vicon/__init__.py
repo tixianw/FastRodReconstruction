@@ -1,2 +1,2 @@
-from .subscriber import PoseMessage, PoseSubscriber
-from .publisher import NDArrayMessage, NDArrayPublisher
+from .subscriber import PoseSubscriber
+from .publisher import NDArrayPublisher

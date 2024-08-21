@@ -3,9 +3,9 @@ sys.path.append('../')
 
 import numpy as np
 from collections import defaultdict
-from typing import Tuple
-from reconstruction import ReconstructionResult, ReconstructionModel
-from ros2_vicon import PoseMessage, PoseSubscriber, NDArrayMessage, NDArrayPublisher
+from typing import Tuple, List
+from reconstruction import ReconstructionResult
+from ros2_vicon import PoseSubscriber, NDArrayPublisher
 
 try:
     import rclpy
@@ -22,28 +22,22 @@ class ReconstructionNode(Node):
         subscription_topics: Tuple[str], 
         reconstruction_rate: float = 60.0,
         reconstructed_elements: int = 100,
-        model: ReconstructionModel = None,
     ):
         super().__init__('reconstruction_node')
         self.get_logger().info('Reconstruction node initializing...')
 
         self.__subscription_topics = subscription_topics
         self.__reconstruction_rate = reconstruction_rate
-        self.model = model
 
         # Initialize subscribers
         self.get_logger().info('- Subcribers initializing...')
-        self.__subscribers = []
+        self.__subscribers: List[PoseSubscriber] = []
         for i, topic in enumerate(self.__subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
-                data=PoseMessage(),
-                subscription=self.create_subscription(
-                    msg_type=PoseMessage.TYPE,
-                    topic=topic,
-                    callback=self.subscriber_callback_closure(i),
-                    qos_profile=100,
-                )
+                callback=self.subscriber_callback_closure(i),
+                qos_profile=100,
+                node=self,
             )
             self.__subscribers.append(subscriber)
 
@@ -52,27 +46,17 @@ class ReconstructionNode(Node):
         self.__publishers = defaultdict(lambda: "No publisher")
         self.__publishers["position"] = NDArrayPublisher(
             topic='/reconstruction/position',
-            message=NDArrayMessage(
-                shape=(3, reconstructed_elements+1), 
-                axis_labels=('position', 'element')
-            ),
-            publishing=self.create_publisher(
-                msg_type=NDArrayMessage.TYPE,
-                topic='/reconstruction/position',
-                qos_profile=100,
-            )
+            shape=(3, reconstructed_elements+1), 
+            axis_labels=('position', 'element'),
+            qos_profile=100,
+            node=self,
         )
         self.__publishers["directors"] = NDArrayPublisher(
             topic='/reconstruction/directors',
-            message=NDArrayMessage(
-                shape=(3, 3, reconstructed_elements), 
-                axis_labels=('directors', 'director_index', 'element')
-            ),
-            publishing=self.create_publisher(
-                msg_type=NDArrayMessage.TYPE,
-                topic='/reconstruction/directors',
-                qos_profile=100,
-            )
+            shape=(3, 3, reconstructed_elements), 
+            axis_labels=('directors', 'director_index', 'element'),
+            qos_profile=100,
+            node=self,
         )
 
         # Create a timer for publishing at reconstruction_rate Hz
@@ -88,11 +72,9 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
-            self.__subscribers[i].data.frame_number = msg.frame_number
-            self.__subscribers[i].data.position = [msg.x_trans, msg.y_trans, msg.z_trans]
-            self.__subscribers[i].data.quaternion = [msg.x_rot, msg.y_rot, msg.z_rot, msg.w]
-            
+            self.__subscribers[i].read(msg)            
             self.get_logger().info(f'{self.__subscribers[i]}')
+
             # self.get_logger().info(f'{msg.frame_number}')
             # self.get_logger().info(f'  {msg.x_trans}')
             # self.get_logger().info(f'  {msg.y_trans}')
@@ -110,12 +92,14 @@ class ReconstructionNode(Node):
         self.publish_director(self.result.directors)
 
     def reconstruct(self):
+        # TODO: Call the reconstruction algorithm
+        
         # Calculate position
-        self.result.position[:, 0] = self.__subscribers[0].data.position
-        self.result.position[:, 1] = self.__subscribers[1].data.position
+        self.result.position[:, 0] = self.__subscribers[0].messgae.position
+        self.result.position[:, 1] = self.__subscribers[1].messgae.position
         # Calculate director
-        self.result.directors[:, :, 0] = self.__subscribers[0].data.directors
-        self.result.directors[:, :, 1] = self.__subscribers[1].data.directors
+        self.result.directors[:, :, 0] = self.__subscribers[0].messgae.directors
+        self.result.directors[:, :, 1] = self.__subscribers[1].messgae.directors
 
     def publish_position(self, position: np.ndarray):
         self.__publishers['position'].publish(position)

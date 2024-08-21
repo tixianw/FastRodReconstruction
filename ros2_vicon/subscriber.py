@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Callable
 from scipy.spatial.transform import Rotation
 
 try:
@@ -63,9 +63,17 @@ class PoseMessage:
         """
         return Rotation.from_quat(self.quaternion).as_matrix()
     
-    def __repr__(self) -> str:
+    def __call__(self, msg: Pose) -> None:
         """
-        Return the string representation of the PoseMsg object.
+        Read the Pose message data.
+        """
+        self.frame_number = msg.frame_number
+        self.position = np.array([msg.x_trans, msg.y_trans, msg.z_trans])
+        self.quaternion = np.array([msg.x_rot, msg.y_rot, msg.z_rot, msg.w])
+
+    def __str__(self) -> str:
+        """
+        Return the string information of the PoseMsg object.
         """
         return (
             f"\nPoseMessage(\n"
@@ -83,5 +91,41 @@ class PoseSubscriber:
     """
 
     topic: str
-    data: PoseMessage
-    subscription: rclpy.subscription.Subscription
+    callback: Callable[[Pose], None]
+    qos_profile: Union[rclpy.qos.QoSProfile, int]
+    node: Node
+
+    def __post_init__(self):
+        """
+        Initialize the PoseSubscriber object.
+        """
+        self.__message = PoseMessage()
+        self.__subscription = self.node.create_subscription(
+            msg_type=self.__message.TYPE,
+            topic=self.topic,
+            callback=self.callback,
+            qos_profile=self.qos_profile,
+        )
+
+    def read(self, msg: Pose) -> None:
+        """
+        Read the Pose message data.
+        """
+        self.__message(msg)
+
+    @property
+    def messgae(self) -> PoseMessage:
+        """
+        Return the Pose message data.
+        """
+        return self.__message
+
+    def __str__(self) -> str:
+        """
+        Return the string information of the PoseSubscriber
+        """
+        return (
+            f"PoseSubscriber(topic={self.topic}, "
+            f"message={self.__message}, "
+            f"subscription={self.__subscription})"
+        )
