@@ -5,7 +5,7 @@ import numpy as np
 from collections import defaultdict
 from typing import Tuple
 from reconstruction import ReconstructionResult, ReconstructionModel
-from ros2_vicon import PoseMsg, PoseSubscriber, NDArrayMessage
+from ros2_vicon import PoseMessage, PoseSubscriber, NDArrayMessage, NDArrayPublisher
 
 try:
     import rclpy
@@ -39,7 +39,7 @@ class ReconstructionNode(Node):
         for i, topic in enumerate(self.__subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
-                data=PoseMsg(),
+                data=PoseMessage(),
                 subscription=self.create_subscription(
                     msg_type=Pose,
                     topic=topic,
@@ -51,26 +51,31 @@ class ReconstructionNode(Node):
 
         # Initialize publishers
         self.get_logger().info('- Publishers initializing...')
-        self.__publishing_topics = {
-            'position': NDArrayMessage(
-                topic='/reconstruction/position',
-                shape=(3, reconstructed_elements), 
+        self.__publishers = defaultdict(lambda: "No publisher")
+        self.__publishers["position"] = NDArrayPublisher(
+            topic='/reconstruction/position',
+            message=NDArrayMessage(
+                shape=(3, reconstructed_elements+1), 
                 axis_labels=('position', 'element')
             ),
-            'directors': NDArrayMessage(
-                topic='/reconstruction/directors',
+            publishing=self.create_publisher(
+                msg_type=NDArrayMessage.TYPE,
+                topic='/reconstruction/position',
+                qos_profile=100,
+            )
+        )
+        self.__publishers["directors"] = NDArrayPublisher(
+            topic='/reconstruction/directors',
+            message=NDArrayMessage(
                 shape=(3, 3, reconstructed_elements), 
                 axis_labels=('directors', 'director_index', 'element')
             ),
-        }
-        self.__publishers = defaultdict(lambda: "No publisher")
-        for key, message in self.__publishing_topics.items():
-            publisher = self.create_publisher(
-                msg_type=message.TYPE,
-                topic=message.topic,
-                qos_profile=1,
+            publishing=self.create_publisher(
+                msg_type=NDArrayMessage.TYPE,
+                topic='/reconstruction/directors',
+                qos_profile=100,
             )
-            self.__publishers[key] = publisher
+        )
 
         # Create a timer for publishing at reconstruction_rate Hz
         self.__timer = self.create_timer(
@@ -105,7 +110,6 @@ class ReconstructionNode(Node):
         self.reconstruct()
         self.publish_position(self.result.position)
         self.publish_director(self.result.directors)
-        # self.get_logger().info(f'Published reconstruction result: {self.result}')
 
     def reconstruct(self):
         # Calculate position
@@ -116,59 +120,12 @@ class ReconstructionNode(Node):
         self.result.directors[:, :, 1] = self.__subscribers[1].data.directors
 
     def publish_position(self, position: np.ndarray):
-        # Create Float32MultiArray message
-        msg = Float32MultiArray()
-
-        # Set up MultiArrayLayout
-        msg.layout.dim = [
-            MultiArrayDimension(
-                label="position", 
-                size=position.shape[0], 
-                stride=position.shape[0] * position.shape[1]
-            ),
-            MultiArrayDimension(
-                label="element", 
-                size=position.shape[1], 
-                stride=position.shape[1]
-            )
-        ]
-        msg.layout.data_offset = 0
-
-        # Flatten the array and convert to list
-        msg.data = position.flatten().tolist()
-
-        # Publish the processed data
-        self.__publishers['position'].publish(msg)
+        self.__publishers['position'].publish(position)
+        self.get_logger().info(f'{self.__publishers["position"]}')
 
     def publish_director(self, director: np.ndarray):
-        # Create Float32MultiArray message
-        msg = Float32MultiArray()
-
-        # Set up MultiArrayLayout
-        msg.layout.dim = [
-            MultiArrayDimension(
-                label="director", 
-                size=director.shape[0], 
-                stride=director.shape[0] * director.shape[1] * director.shape[2]
-            ),
-            MultiArrayDimension(
-                label="director_index", 
-                size=director.shape[1], 
-                stride=director.shape[1] * director.shape[2]
-            ),
-            MultiArrayDimension(
-                label="element", 
-                size=director.shape[2], 
-                stride=director.shape[2]
-            )
-        ]
-        msg.layout.data_offset = 0
-
-        # Flatten the array and convert to list
-        msg.data = director.flatten().tolist()
-
-        # Publish the processed data
-        self.__publishers['directors'].publish(msg)
+        self.__publishers['directors'].publish(director)
+        self.get_logger().info(f'{self.__publishers["directors"]}')
 
 
 def main(args=None):
@@ -180,10 +137,10 @@ def main(args=None):
     subscription_topics = (
         '/vicon_mock/CrossSection_0_0/CrossSection_0_0',
         '/vicon_mock/CrossSection_0_1/CrossSection_0_1',
-        '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
-        '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
-        '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
-        '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
+        # '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
+        # '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
+        # '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
+        # '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
     )
     node = ReconstructionNode(
         subscription_topics=subscription_topics,

@@ -38,7 +38,7 @@ class NDArrayDescriptor:
         setattr(obj, self.private_name, value)
 
 
-class PoseMsg:
+class PoseMessage:
     """
     Class for Pose message data.
     """
@@ -48,7 +48,7 @@ class PoseMsg:
 
     def __init__(self,):
         """
-        Initialize the PoseMsg object.
+        Initialize the PoseMessage object.
         """ 
         self.frame_number: int = 0
         self.position = np.zeros(3)
@@ -67,7 +67,7 @@ class PoseMsg:
         Return the string representation of the PoseMsg object.
         """
         return (
-            f"\nPositionMsg(\n"
+            f"\nPoseMessage(\n"
             f"    frame_number={self.frame_number},\n"
             f"    position={np.array2string(self.position, precision=4, suppress_small=True)},\n"
             f"    quaternion={np.array2string(self.quaternion, precision=4, suppress_small=True)},\n"
@@ -82,5 +82,5 @@ class PoseSubscriber:
     """
 
     topic: str
-    data: PoseMsg
+    data: PoseMessage
     subscription: rclpy.subscription.Subscription
