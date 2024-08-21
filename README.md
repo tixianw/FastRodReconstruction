@@ -35,23 +35,24 @@ In this case the id is `7cb5009f616f`.
 ```
 root@7cb5009f616f:/#  
 ```
-Once inside the container, change directory to the Vicon workspace:
-```
-cd vicon_ws
-```
 
 ## Step 3: Copy the Reconstruction Node
 
-In the third terminal, use the following command to copy the `reconstruction_node.py` script into the running container:
+In the third terminal, use the following command to copy two folders into the running container:
 ```
-docker cp ./ros2-vicon/reconstruction_node.py <container_id>:/vicon_ws
+docker cp ./examples <container_id>:/vicon_ws
+docker cp ./reconstruction <container_id>:/vicon_ws
 ```
 Replace `<container_id>` with the ID of the container you noted in Step 2.
 
 ## Step 4: Run the Reconstruction Node
 
 Return to the second terminal where you started the ROS2 Vicon container. 
-Now that you've copied the `reconstruction_node.py` script into the container, you can run it:
+Change directory to the `examples` folder in the Vicon workspace:
+```
+cd vicon_ws/examples
+```
+Run the reconstruction script:
 ```
 python3 reconstruction_node.py
 ```
@@ -66,8 +67,7 @@ This command will start the reconstruction node, which will begin listening to m
 ## Troubleshooting
 
 - If you encounter any permission issues when copying files, you may need to run the `docker cp` command with sudo privileges.
-- Ensure that the `reconstruction_node.py` file is in the directory where you're `docker cp` command is refering to.
-- If you get an error when trying to run the `reconstruction_node.py` script, make sure you're in the correct directory (`vicon_ws`) and that the file was successfully copied into the container.
+- Ensure that the `reconstruction_node.py` file is in the directory where your terminal is at.
 
 ## Next Steps
 
