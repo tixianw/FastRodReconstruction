@@ -98,7 +98,7 @@ class ReconstructionNode(Node):
     def timer_callback(self):
         self.reconstruct()
         self.publish_position(self.result.position)
-        self.publish_director(self.result.director)
+        self.publish_director(self.result.directors)
         # self.get_logger().info(f'Published reconstruction result: {self.result}')
 
     def reconstruct(self):
@@ -106,13 +106,9 @@ class ReconstructionNode(Node):
         self.result.position[:, 0] = self.subscribers[0].data.position
         self.result.position[:, 1] = self.subscribers[1].data.position
         # Calculate director
-        self.result.director[:, :, 0] = np.array(
-            [self.subscribers[0].data.position, self.subscribers[1].data.position, self.subscribers[0].data.position]
-        )
-        self.result.director[:, :, 1] = np.array(
-            [self.subscribers[1].data.position, self.subscribers[0].data.position, self.subscribers[1].data.position]
-        )
-    
+        self.result.directors[:, :, 0] = self.subscribers[0].data.directors
+        self.result.directors[:, :, 1] = self.subscribers[1].data.directors
+
     def publish_position(self, position: np.ndarray):
         # Create Float32MultiArray message
         msg = Float32MultiArray()

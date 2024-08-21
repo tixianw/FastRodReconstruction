@@ -1,6 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
 from typing import Union
+from scipy.spatial.transform import Rotation
 
 try:
     import rclpy
@@ -12,10 +13,15 @@ except ModuleNotFoundError:
 
 
 class NDArrayDescriptor:
+    """
+    Descriptor for numpy arrays.
+    """
+
     def __init__(self, shape):
         self.shape = shape
 
     def __set_name__(self, owner: type, name: str) -> None:
+        self.name = name
         self.private_name = "__" + name
 
     def __get__(self, obj: object, objtype: type) -> np.ndarray:
@@ -26,28 +32,40 @@ class NDArrayDescriptor:
         if isinstance(value, list):
             value = np.array(value)
         if not isinstance(value, np.ndarray):
-            raise TypeError(f"{self.private_name} must be a numpy array or list")
+            raise TypeError(f"{self.name} must be a numpy array or list")
         if value.shape != self.shape:
-            raise ValueError(f"{self.private_name} must have shape {self.shape}")
+            raise ValueError(f"{self.name} must have shape {self.shape}")
         setattr(obj, self.private_name, value)
 
 
 class PoseMsg:
+    """
+    Class for Pose message data.
+    """
+
     position = NDArrayDescriptor((3,))
     quaternion = NDArrayDescriptor((4,))
 
     def __init__(self,):
-        # Set initial values
+        """
+        Initialize the PoseMsg object.
+        """ 
         self.frame_number: int = 0
         self.position = np.zeros(3)
-        self.quaternion = np.zeros(4)
+        self.quaternion = np.array([1.0, 0.0, 0.0, 0.0])
 
     @property
     def directors(self) -> np.ndarray:
-        # TODO: Implement quaternion to directors conversion
-        return np.array([self.position, self.position, self.position])
+        """
+        Convert quaternion to directors matrix (rotation matrix).
+        Returns a 3x3 numpy array representing the rotation.
+        """
+        return Rotation.from_quat(self.quaternion).as_matrix()
     
     def __repr__(self) -> str:
+        """
+        Return the string representation of the PoseMsg object.
+        """
         return (
             f"\nPositionMsg(\n"
             f"    frame_number={self.frame_number},\n"
@@ -59,6 +77,10 @@ class PoseMsg:
 
 @dataclass
 class PoseSubscriber:
+    """
+    Dataclass for Pose message subscriber.
+    """
+
     topic: str
     data: PoseMsg
     subscription: rclpy.subscription.Subscription
