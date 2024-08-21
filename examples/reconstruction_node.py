@@ -10,8 +10,6 @@ from ros2_vicon import PoseMessage, PoseSubscriber, NDArrayMessage, NDArrayPubli
 try:
     import rclpy
     from rclpy.node import Node
-    from vicon_receiver.msg import Position as Pose
-    from std_msgs.msg import Float32MultiArray, MultiArrayDimension  # For publishing numpy array
 except ModuleNotFoundError:
     print('Could not import ROS2 modules. Make sure to source ROS2 workspace first.')
     import sys
@@ -41,7 +39,7 @@ class ReconstructionNode(Node):
                 topic=topic,
                 data=PoseMessage(),
                 subscription=self.create_subscription(
-                    msg_type=Pose,
+                    msg_type=PoseMessage.TYPE,
                     topic=topic,
                     callback=self.subscriber_callback_closure(i),
                     qos_profile=100,

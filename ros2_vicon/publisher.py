@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 try:
     import rclpy
     from rclpy.node import Node
-    from std_msgs.msg import Float32MultiArray, MultiArrayDimension
+    from std_msgs.msg import Float32MultiArray, MultiArrayDimension  # For publishing numpy array
 except ModuleNotFoundError:
     print('Could not import ROS2 modules. Make sure to source ROS2 workspace first.')
     import sys

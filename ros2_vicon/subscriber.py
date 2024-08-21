@@ -6,6 +6,7 @@ from scipy.spatial.transform import Rotation
 try:
     import rclpy
     from rclpy.node import Node
+    from vicon_receiver.msg import Position as Pose
 except ModuleNotFoundError:
     print('Could not import ROS2 modules. Make sure to source ROS2 workspace first.')
     import sys
@@ -42,7 +43,7 @@ class PoseMessage:
     """
     Class for Pose message data.
     """
-
+    TYPE = Pose
     position = NDArrayDescriptor((3,))
     quaternion = NDArrayDescriptor((4,))
 
