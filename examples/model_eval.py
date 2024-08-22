@@ -3,21 +3,15 @@ Created on Aug 21, 2024
 @author: Tixian Wang
 """
 
-# from torch import nn, optim
-# import torch.nn.functional as F
-from time import perf_counter
+from importlib import resources
 
 import matplotlib.pyplot as plt
-
-# import sys
-# sys.path.append('../')
 import numpy as np
 import torch
 
+from assets import ASSETS, FILE_NAME, MODEL_NAME
 from neural_data_smoothing3D import (
-    PCA,
     CurvatureSmoothing3DNet,
-    TensorConstants,
     coeff2strain,
     strain2posdir,
     tensor2numpyVec,
@@ -25,21 +19,6 @@ from neural_data_smoothing3D import (
 
 color = ["C" + str(i) for i in range(10)]
 np.random.seed(2024)
-
-
- choice = 1
-# folder_name = 'neural_data_smoothing3D/Data/'
-test_folder = "Data/"
-from importlib import resources
-
-# if choice == 0:
-# 	file_name = 'BR2_arm_data'
-# 	model_name = 'data_smoothing_model_br2_BS128'
-# elif choice ==1:
-# 	file_name = 'BR2_arm_data'
-# 	model_name = 'data_smoothing_model_br2_test'
-# data = np.load(folder_name + file_name + '.npy', allow_pickle='TRUE').item()
-from assets import ASSETS, FILE_NAME, MODEL_NAME
 
 # If the .npy file is directly in your package
 with resources.path(ASSETS, FILE_NAME) as path:
