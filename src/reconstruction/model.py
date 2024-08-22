@@ -12,7 +12,8 @@ from neural_data_smoothing3D import (
     strain2posdir,
     tensor2numpyVec,
 )
-from reconstruction import ReconstructionResult
+
+from .result import ReconstructionResult
 
 
 class ReconstructionModel:

@@ -1,13 +1,5 @@
-import sys
-
-sys.path.append("../")
-
 import numpy as np
 
-from neural_data_smoothing3D import (  # , CurvatureSmoothing3DNet
-    PCA,
-    TensorConstants,
-)
 from reconstruction import ReconstructionModel
 
 
