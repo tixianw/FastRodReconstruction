@@ -11,10 +11,6 @@ readme = "README.md"
 authors = []
 license = "MIT"
 keywords = ["Soft Arm Reconstruction"]
-include = [
-    "src/assets/BR2_arm_data.npy",
-    "src/assets/data_smoothing_model_br2_6markers.pt",
-]
 
 # Pypi classifiers: https://pypi.org/classifiers/
 classifiers = [
