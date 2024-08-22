@@ -3,20 +3,13 @@ Created on Aug 21, 2024
 @author: Tixian Wang
 """
 
-# import sys
-# sys.path.append('../')
-import numpy as np
-import numpy.random as npr
-import torch
-import torch.nn.functional as F
-from torch import nn, optim
-from torch.utils.data import DataLoader, Dataset, Subset, random_split
+import os
+from importlib import resources
 
-from neural_data_smoothing3D import (
-    PCA,
-    CurvatureSmoothing3DModel,
-    TensorConstants,
-)
+import numpy as np
+
+from assets import ASSETS, FILE_NAME
+from neural_data_smoothing3D import CurvatureSmoothing3DModel, TensorConstants
 from neural_data_smoothing3D.utils import _aver
 
 # torch.manual_seed(2024)
@@ -24,9 +17,24 @@ from neural_data_smoothing3D.utils import _aver
 
 
 def main():
-    folder_name = "../neural_data_smoothing3D/Data/"
-    file_name = "BR2_arm_data"
-    data = np.load(folder_name + file_name + ".npy", allow_pickle="TRUE").item()
+
+    folder_name = "assets"
+    training_data_name = "training_data_set.npy"
+    if not os.path.exists(folder_name):
+        raise FileNotFoundError("Run create_training_set.py first")
+
+    # Construct the full path to the file
+    file_path = os.path.join(folder_name, training_data_name)
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(
+            f"The file '{training_data_name}' does not exist in the '{folder_name}' folder. "
+            f"Run create_training_set.py first"
+        )
+
+    with resources.path(ASSETS, FILE_NAME) as path:
+        data = np.load(path, allow_pickle="TRUE").item()
 
     n_elem = data["model"]["n_elem"]
     L = data["model"]["L"]
@@ -42,7 +50,7 @@ def main():
     pca = data["pca"]
 
     training_data = np.load(
-        "Data/" + "training_data_set.npy", allow_pickle="TRUE"
+        file_path, allow_pickle="TRUE"
     ).item()  # training_data_set1
     input_data = training_data["input_data"]
     true_pos = training_data["true_pos"]
@@ -97,10 +105,10 @@ def main():
     model.model_train()
 
     flag_save = True
-    model_name = "data_smoothing_model_br2_test"
+    model_name = "/data_smoothing_model_br2_test.pt"
 
     if flag_save:
-        model.model_save("Data/Model/" + model_name + ".pt")
+        model.model_save(folder_name + model_name)
 
 
 if __name__ == "__main__":
