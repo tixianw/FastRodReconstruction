@@ -20,10 +20,8 @@ from neural_data_smoothing3D import (
 color = ["C" + str(i) for i in range(10)]
 np.random.seed(2024)
 
-# If the .npy file is directly in your package
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
-
 
 n_elem = data["model"]["n_elem"]
 L = data["model"]["L"]
