@@ -1,3 +1,6 @@
+# User created data files
+examples/Data/
+
 # ROS2 specific
 ros2_bag/
 
