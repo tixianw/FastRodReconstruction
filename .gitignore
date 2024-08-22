@@ -1,5 +1,5 @@
 # User created data files
-examples/Data/
+examples/assets/
 
 # ROS2 specific
 ros2_bag/

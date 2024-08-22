@@ -116,7 +116,7 @@ def main():
     if flag_save:
         import os
 
-        folder_name = "Data"
+        folder_name = "assets"
         if not os.path.exists(folder_name):
             os.mkdir(folder_name)
 
@@ -133,7 +133,7 @@ def main():
             "true_kappa": strain_rand,
             "true_shear": nominal_shear,
         }
-        np.save("Data/training_data_set.npy", training_data)
+        np.save(folder_name + "/training_data_set.npy", training_data)
 
 
 if __name__ == "__main__":
