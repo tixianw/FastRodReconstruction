@@ -7,7 +7,9 @@ def main():
     # Load the model
     model = ReconstructionModel()
 
-    marker_data = np.zeros(model.input_size)
+    # marker_data = np.zeros(model.input_size)
+    marker_data = np.zeros([9, 3])
+    print(marker_data.shape)
 
     # Create a new instance of the model
     result = model(marker_data)

@@ -54,6 +54,7 @@ class ReconstructionModel:
         self.pca = rod_data["pca"]
 
         self.tensor_constants = model_data["tensor_constants"]
+        self.idx_data_pts = self.tensor_constants.idx_data_pts
         self.input_size = self.tensor_constants.input_size
         self.output_size = self.tensor_constants.output_size
         self.net = CurvatureSmoothing3DNet(self.input_size, self.output_size)
