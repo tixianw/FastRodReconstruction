@@ -5,8 +5,8 @@ Created on Aug 5, 2024
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-# from tqdm import tqdm
 from numpy.linalg import eigh # eig
+# from tqdm import tqdm
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.decomposition import PCA
 color = ['C'+str(i) for i in range(10)]
@@ -71,10 +71,10 @@ def main():
 	s = data['model']['s']
 	dl = data['model']['dl']
 	nominal_shear = data['model']['nominal_shear']
-	idx_data_pts = data['idx_data_pts']
-	input_data = data['input_data']
-	true_pos = data['true_pos']
-	true_dir = data['true_dir']
+	# idx_data_pts = data['idx_data_pts']
+	# input_data = data['input_data']
+	# true_pos = data['true_pos']
+	# true_dir = data['true_dir']
 	true_kappa = data['true_kappa']
 
 	n_components = np.array([3,3,3])

@@ -16,7 +16,7 @@ color = ['C'+str(i) for i in range(20)]
 
 def main():
 	folder_name = 'Data/'
-	file_name = 'BR2_arm_data' # 'pyelastica_arm_data' # 
+	file_name = 'BR2_arm_data'
 	data = np.load(folder_name + file_name + '.npy', allow_pickle='TRUE').item()
 
 	n_elem = data['model']['n_elem']
@@ -26,15 +26,16 @@ def main():
 	dl = data['model']['dl']
 	nominal_shear = data['model']['nominal_shear']
 	idx_data_pts = data['idx_data_pts']
-	input_data = data['input_data']
-	true_pos = data['true_pos']
-	true_dir = data['true_dir']
+	# input_data = data['input_data']
+	# true_pos = data['true_pos']
+	# true_dir = data['true_dir']
 	true_kappa = data['true_kappa']
 	pca = data['pca']
 
 	num_strain = len(pca)
 	input_size = len(idx_data_pts) * (3+6)
 	output_size = sum([pca[i].n_components for i in range(num_strain)])
+	print('input_size:', input_size, 'output_size:', output_size)
 	coeffs = np.hstack([pca[i].transform(true_kappa[:,i,:]) for i in range(num_strain)])
 
 	# for j in range(min(10, coeffs.shape[1])):

@@ -34,7 +34,7 @@ def main():
 	true_kappa = data['true_kappa']
 	pca = data['pca']
 
-	training_data = np.load('Data/' + 'training_data_set.npy', allow_pickle='TRUE').item() # training_data_set1
+	training_data = np.load('Data/' + 'training_data_set2.npy', allow_pickle='TRUE').item() # training_data_set1
 	input_data = training_data['input_data']
 	true_pos = training_data['true_pos']
 	true_dir = training_data['true_dir']
@@ -56,7 +56,7 @@ def main():
 
 	tensor_constants = TensorConstants(bend_twist_stiff, idx_data_pts, dl, chi_r, chi_d, pca, input_size, output_size)
 	## Train the model
-	num_epochs = int(1)
+	num_epochs = int(10)
 	batch_size = 128 # 128 # 100
 	print('# total samples:', len(input_data), '# epochs:', num_epochs, 'batch size:', batch_size)
 	model = CurvatureSmoothing3DModel(tensor_constants, input_data, num_epochs, batch_size=batch_size, labels=true_kappa)
@@ -64,7 +64,7 @@ def main():
 	model.model_train()
 
 	flag_save = True
-	model_name = 'data_smoothing_model_br2_test'
+	model_name = 'data_smoothing_model_br2_4marker'
 
 	if flag_save:
 		model.model_save('Data/Model/' + model_name + '.pt')

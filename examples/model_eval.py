@@ -25,7 +25,7 @@ if choice == 0:
 	model_name = 'data_smoothing_model_br2_BS128'
 elif choice ==1:
 	file_name = 'BR2_arm_data'
-	model_name = 'data_smoothing_model_br2_test'
+	model_name = 'data_smoothing_model_br2_4markers'
 data = np.load(folder_name + file_name + '.npy', allow_pickle='TRUE').item()
 n_elem = data['model']['n_elem']
 L = data['model']['L']
@@ -37,7 +37,7 @@ idx_data_pts = data['idx_data_pts']
 pca = data['pca']
 
 ### test data
-test_data_file_name = 'training_data_set'
+test_data_file_name = 'training_data_set2'
 training_data = np.load(test_folder + test_data_file_name + '.npy', allow_pickle='TRUE').item()
 input_data = training_data['input_data']
 true_pos = training_data['true_pos']
