@@ -1,14 +1,11 @@
-import sys
-
-sys.path.append("../")
-
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from collections import defaultdict
 
 import numpy as np
 
-from reconstruction import ReconstructionResult
+from neural_data_smoothing3D import pos_dir_to_input
+from reconstruction import ReconstructionModel, ReconstructionResult
 from ros2_vicon import NDArrayPublisher, PoseSubscriber
 
 try:
@@ -23,12 +20,17 @@ except ModuleNotFoundError:
     sys.exit(1)
 
 
+class ReconstructionModelResourceProtocol:
+    data_file_name: Optional[str] = (None,)
+    model_file_name: Optional[str] = (None,)
+
+
 class ReconstructionNode(Node):
     def __init__(
         self,
         subscription_topics: Tuple[str],
         reconstruction_rate: float = 60.0,
-        reconstructed_elements: int = 100,
+        model_resource: Optional[ReconstructionModelResourceProtocol] = None,
     ):
         super().__init__("reconstruction_node")
         self.get_logger().info("Reconstruction node initializing...")
@@ -48,20 +50,41 @@ class ReconstructionNode(Node):
             )
             self.__subscribers.append(subscriber)
 
+        self.number_of_markers = len(self.__subscribers)
+
+        # Initialize reconstruction model
+        self.get_logger().info("- Reconstruction model initializing...")
+        self.__reconstruction_model = (
+            ReconstructionModel(
+                data_file_name=model_resource.data_file_name,
+                model_file_name=model_resource.model_file_name,
+            )
+            if model_resource
+            else ReconstructionModel()
+        )
+
         # Initialize publishers
         self.get_logger().info("- Publishers initializing...")
         self.__publishers = defaultdict(lambda: "No publisher")
         self.__publishers["position"] = NDArrayPublisher(
             topic="/reconstruction/position",
-            shape=(3, reconstructed_elements + 1),
+            shape=self.__reconstruction_model.result.position.shape,
             axis_labels=("position", "element"),
             qos_profile=100,
             node=self,
         )
         self.__publishers["directors"] = NDArrayPublisher(
             topic="/reconstruction/directors",
-            shape=(3, 3, reconstructed_elements),
+            shape=self.__reconstruction_model.result.directors.shape,
             axis_labels=("directors", "director_index", "element"),
+            qos_profile=100,
+            node=self,
+        )
+
+        self.__publishers["kappa"] = NDArrayPublisher(
+            topic="/reconstruction/kappa",
+            shape=self.__reconstruction_model.result.kappa.shape,
+            axis_labels=("kappa", "element"),
             qos_profile=100,
             node=self,
         )
@@ -72,9 +95,9 @@ class ReconstructionNode(Node):
             callback=self.timer_callback,
         )
 
-        self.result = ReconstructionResult(
-            number_of_elements=reconstructed_elements,
-        )
+    @property
+    def result(self) -> ReconstructionResult:
+        return self.__reconstruction_model.result
 
     def subscriber_callback_closure(self, i: int):
         def subscriber_callback(msg):
@@ -94,45 +117,53 @@ class ReconstructionNode(Node):
 
     def timer_callback(self):
         self.reconstruct()
-        self.publish_position(self.result.position)
-        self.publish_director(self.result.directors)
+        self.publish("position", self.result.position)
+        self.publish("directors", self.result.directors)
+        self.publish("kappa", self.result.kappa)
+
+    def create_input_data(self) -> np.ndarray:
+        # Create input data from the subscribers
+
+        position_data = np.zeros((1, 3, self.number_of_markers - 1))
+        director_data = np.zeros((1, 3, 3, self.number_of_markers - 1))
+        base_position = self.__subscribers[0].message.position
+        base_director = self.__subscribers[0].message.directors
+        for i, subscriber in enumerate(self.__subscribers[1:]):
+            position_data[0, :, i] = subscriber.message.position - base_position
+            director_data[0, :, :, i] = subscriber.message.directors
+
+        input_data = pos_dir_to_input(
+            pos=position_data,
+            dir=director_data,
+        )
+        return input_data
 
     def reconstruct(self):
-        # TODO: Call the reconstruction algorithm
+        self.__reconstruction_model(self.create_input_data())
 
-        # Calculate position
-        self.result.position[:, 0] = self.__subscribers[0].messgae.position
-        self.result.position[:, 1] = self.__subscribers[1].messgae.position
-        # Calculate director
-        self.result.directors[:, :, 0] = self.__subscribers[0].messgae.directors
-        self.result.directors[:, :, 1] = self.__subscribers[1].messgae.directors
-
-    def publish_position(self, position: np.ndarray):
-        self.__publishers["position"].publish(position)
-        self.get_logger().info(f'{self.__publishers["position"]}')
-
-    def publish_director(self, director: np.ndarray):
-        self.__publishers["directors"].publish(director)
-        self.get_logger().info(f'{self.__publishers["directors"]}')
+    def publish(self, publisher_key: str, data: np.ndarray):
+        self.__publishers[publisher_key].publish(data)
+        self.get_logger().info(f"{self.__publishers[publisher_key]}")
 
 
 def main(args=None):
     rclpy.init(args=args)
     subscription_topics = (
-        "/vicon/TestSubject_0/TestSubject_0",
-        "/vicon/TestSubject_1/TestSubject_1",
+        "/vicon/br2_seg_1/br2_seg_1",
+        "/vicon/br2_seg_2/br2_seg_2",
+        "/vicon/br2_seg_3/br2_seg_3",
+        "/vicon/br2_seg_4/br2_seg_4",
     )
-    subscription_topics = (
-        "/vicon_mock/CrossSection_0_0/CrossSection_0_0",
-        "/vicon_mock/CrossSection_0_1/CrossSection_0_1",
-        # '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
-        # '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
-        # '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
-        # '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
-    )
+    # subscription_topics = (
+    #     "/vicon_mock/CrossSection_0_0/CrossSection_0_0",
+    #     "/vicon_mock/CrossSection_0_1/CrossSection_0_1",
+    #     '/vicon_mock/CrossSection_0_2/CrossSection_0_2',
+    #     '/vicon_mock/CrossSection_0_3/CrossSection_0_3',
+    #     # '/vicon_mock/CrossSection_0_4/CrossSection_0_4',
+    #     # '/vicon_mock/CrossSection_0_5/CrossSection_0_5',
+    # )
     node = ReconstructionNode(
         subscription_topics=subscription_topics,
-        reconstructed_elements=len(subscription_topics),
     )
     try:
         rclpy.spin(node)

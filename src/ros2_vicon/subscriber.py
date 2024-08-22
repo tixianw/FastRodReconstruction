@@ -122,7 +122,7 @@ class PoseSubscriber:
         self.__message(msg)
 
     @property
-    def messgae(self) -> PoseMessage:
+    def message(self) -> PoseMessage:
         """
         Return the Pose message data.
         """
