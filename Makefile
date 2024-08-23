@@ -3,8 +3,8 @@ PYTHON := python3
 PYTHONPATH := `pwd`
 
 #* Poetry: the dependency management and packaging tool for Python
-.PHONY: poetry-download
-poetry-download:
+.PHONY: poetry-install
+poetry-install:
 	curl -sSL https://install.python-poetry.org/ | $(PYTHON) -
 
 .PHONY: poetry-remove
