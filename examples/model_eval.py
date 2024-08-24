@@ -3,6 +3,7 @@ Created on Aug 21, 2024
 @author: Tixian Wang
 """
 
+import os
 from importlib import resources
 
 import matplotlib.pyplot as plt
@@ -20,9 +21,28 @@ from neural_data_smoothing3D import (
 color = ["C" + str(i) for i in range(10)]
 np.random.seed(2024)
 
+## import rod parameters
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
+folder_name = "assets" # 'Data' # 
+test_data_name = "training_data_set.npy"
+model_name = 'data_smoothing_model_br2_test.pt'
+if not os.path.exists(folder_name):
+    with resources.path(ASSETS, MODEL_NAME) as path:
+        model = torch.load(path)
+    test_data = data
+    print('No user trained model. Evalulating developer\'s trained model...')
+else:
+    model_file_path = os.path.join(folder_name, model_name)
+    test_data_file_path = os.path.join(folder_name, test_data_name)
+    model = torch.load(model_file_path)
+    test_data = np.load(
+        test_data_file_path, allow_pickle="TRUE"
+    ).item()
+    print('Evalulating user\'s trained model...')
+
+## import rod parameters
 n_elem = data["model"]["n_elem"]
 L = data["model"]["L"]
 radius = data["model"]["radius"]
@@ -32,14 +52,13 @@ nominal_shear = data["model"]["nominal_shear"]
 idx_data_pts = data["idx_data_pts"]
 pca = data["pca"]
 
-training_data = data
-input_data = training_data["input_data"]
-true_pos = training_data["true_pos"]
-true_dir = training_data["true_dir"]
-true_kappa = training_data["true_kappa"]
+## test data
+input_data = test_data["input_data"]
+true_pos = test_data["true_pos"]
+true_dir = test_data["true_dir"]
+true_kappa = test_data["true_kappa"]
 
-with resources.path(ASSETS, MODEL_NAME) as path:
-    model = torch.load(path)
+## load trained model
 num_epochs = model["num_epochs"]
 batch_size = model["batch_size"]
 tensor_constants = model["tensor_constants"]

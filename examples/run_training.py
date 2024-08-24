@@ -51,7 +51,7 @@ def main():
 
     training_data = np.load(
         file_path, allow_pickle="TRUE"
-    ).item()  # training_data_set1
+    ).item()
     input_data = training_data["input_data"]
     true_pos = training_data["true_pos"]
     true_dir = training_data["true_dir"]
@@ -84,7 +84,7 @@ def main():
         output_size,
     )
     ## Train the model
-    num_epochs = int(1)
+    num_epochs = int(10)
     batch_size = 128  # 128 # 100
     print(
         "# total samples:",
