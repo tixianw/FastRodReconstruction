@@ -7,7 +7,7 @@ import numpy as np
 
 from neural_data_smoothing3D import pos_dir_to_input
 from reconstruction import ReconstructionModel, ReconstructionResult
-from ros2_vicon import NDArrayPublisher, PosePublisher, PoseSubscriber
+from ros2_vicon import NDArrayPublisher, PosePublisher, PoseSubscriber, Timer
 
 try:
     import rclpy
@@ -44,7 +44,7 @@ class ReconstructionNode(Node):
 
         # Initialize subscribers
         self.get_logger().info("- Subcribers initializing...")
-        self.subscribers: List[PoseSubscriber] = []
+        self.__subscribers: List[PoseSubscriber] = []
         for i, topic in enumerate(self.subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
@@ -52,7 +52,7 @@ class ReconstructionNode(Node):
                 qos_profile=100,
                 node=self,
             )
-            self.subscribers.append(subscriber)
+            self.__subscribers.append(subscriber)
         self.init_input_data()
 
         # Initialize reconstruction model
@@ -68,7 +68,7 @@ class ReconstructionNode(Node):
 
         # Initialize publishers
         self.get_logger().info("- Publishers initializing...")
-        self.publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
+        self.__publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
             "pose": PosePublisher(
                 topic="/vicon/pose",
                 length=self.number_of_markers - 1,
@@ -99,13 +99,20 @@ class ReconstructionNode(Node):
         }
 
         # Create a timer for publishing at reconstruction_rate Hz
-        self.timer = self.create_timer(
+        # self.timer = self.create_timer(
+        #     timer_period_sec=1 / self.reconstruction_rate,
+        #     callback=self.timer_callback,
+        # )
+        self.timer = Timer(
             timer_period_sec=1 / self.reconstruction_rate,
             callback=self.timer_callback,
+            node=self,
+            publish_flag=True,
+            qos_profile=100,
         )
 
     def init_input_data(self) -> None:
-        self.number_of_markers = len(self.subscribers)
+        self.number_of_markers = len(self.__subscribers)
         self.input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
         self.input_data[0, 3, 3, :] = 1.0
         self.input_data[0, :3, :3, :] = np.eye(3)
@@ -130,8 +137,8 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
-            self.subscribers[i].receive(msg)
-            self.get_logger().debug(f"{self.subscribers[i]}")
+            self.__subscribers[i].receive(msg)
+            self.get_logger().debug(f"{self.__subscribers[i]}")
 
             # self.get_logger().debug(f'{msg.frame_number}')
             # self.get_logger().debug(f'  {msg.x_trans}')
@@ -153,9 +160,9 @@ class ReconstructionNode(Node):
 
     def create_input_data(self) -> np.ndarray:
         # Create input data from the subscribers
-        base_position = self.subscribers[0].message.position
-        base_directors = self.subscribers[0].message.directors
-        for i, subscriber in enumerate(self.subscribers[1:]):
+        base_position = self.__subscribers[0].message.position
+        base_directors = self.__subscribers[0].message.directors
+        for i, subscriber in enumerate(self.__subscribers[1:]):
             self.input_data[0, :3, 3, i] = (
                 subscriber.message.position - base_position
             )
@@ -171,8 +178,8 @@ class ReconstructionNode(Node):
         self.model(self.create_input_data())
 
     def publish(self, publisher_key: str, data: np.ndarray) -> None:
-        self.publishers[publisher_key].release(data)
-        self.get_logger().info(f"{self.publishers[publisher_key]}")
+        self.__publishers[publisher_key].release(data)
+        self.get_logger().info(f"{self.__publishers[publisher_key]}")
 
 
 def set_subsciption_topics(source: str):
