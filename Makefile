@@ -12,10 +12,28 @@ poetry-remove:
 	curl -sSL https://install.python-poetry.org/ | $(PYTHON) - --uninstall
 
 #* Installation
-.PHONY: install
-install:
+.PHONY: check-env install activate-env
+
+# Store the initial environment path
+INITIAL_ENV := $(shell poetry env info --path 2>/dev/null)
+
+check-env:
+	@echo "Initial environment: $(INITIAL_ENV)"
+
+install: check-env
 	poetry export --without-hashes > requirements.txt
 	poetry install -n
+	@NEW_ENV=$$(poetry env info --path 2>/dev/null); \
+	if [ "$$NEW_ENV" != "$(INITIAL_ENV)" ]; then \
+		echo "New virtual environment detected at: $$NEW_ENV"; \
+		echo "Activating environment and running Python..."; \
+		poetry shell -c "python -c 'import sys; print(f\"Python {sys.version} on {sys.platform}\")'; exec /bin/bash"; \
+	else \
+		echo "No new virtual environment detected."; \
+	fi
+
+activate-env:
+	poetry shell
 
 #* Installation of pre-commit: tool of Git hook scripts
 .PHONY: pre-commit-install

@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 from collections import defaultdict
 
+import click
 import numpy as np
 
 from neural_data_smoothing3D import pos_dir_to_input
@@ -31,8 +32,10 @@ class ReconstructionNode(Node):
         subscription_topics: Tuple[str],
         reconstruction_rate: float = 60.0,
         model_resource: Optional[ReconstructionModelResourceProtocol] = None,
+        log_level: str = "info",
     ):
         super().__init__("reconstruction_node")
+        self.set_logger_level(log_level)
         self.get_logger().info("Reconstruction node initializing...")
 
         self.__subscription_topics = subscription_topics
@@ -95,6 +98,20 @@ class ReconstructionNode(Node):
             callback=self.timer_callback,
         )
 
+    def set_logger_level(self, log_level: str):
+        level_map = {
+            "debug": rclpy.logging.LoggingSeverity.DEBUG,
+            "info": rclpy.logging.LoggingSeverity.INFO,
+            "warn": rclpy.logging.LoggingSeverity.WARN,
+            "error": rclpy.logging.LoggingSeverity.ERROR,
+            "fatal": rclpy.logging.LoggingSeverity.FATAL,
+        }
+        assert (
+            log_level.lower() in level_map.keys()
+        ), f"Invalid log level: {log_level}"
+        level = level_map[log_level.lower()]
+        self.get_logger().set_level(level)
+
     @property
     def result(self) -> ReconstructionResult:
         return self.__reconstruction_model.result
@@ -127,7 +144,7 @@ class ReconstructionNode(Node):
         position_data = np.zeros((1, 3, self.number_of_markers - 1))
         director_data = np.zeros((1, 3, 3, self.number_of_markers - 1))
         base_position = self.__subscribers[0].message.position
-        base_director = self.__subscribers[0].message.directors
+        base_directors = self.__subscribers[0].message.directors
         for i, subscriber in enumerate(self.__subscribers[1:]):
             position_data[0, :, i] = subscriber.message.position - base_position
             director_data[0, :, :, i] = subscriber.message.directors
@@ -146,8 +163,17 @@ class ReconstructionNode(Node):
         self.get_logger().info(f"{self.__publishers[publisher_key]}")
 
 
-def main(args=None):
-    rclpy.init(args=args)
+@click.command()
+@click.option(
+    "--log-level",
+    type=click.Choice(
+        ["debug", "info", "warn", "error", "fatal"], case_sensitive=False
+    ),
+    default="info",
+    help="Set the logging level",
+)
+def main(log_level):
+    rclpy.init()
     subscription_topics = (
         "/vicon/br2_seg_1/br2_seg_1",
         "/vicon/br2_seg_2/br2_seg_2",
@@ -164,6 +190,7 @@ def main(args=None):
     # )
     node = ReconstructionNode(
         subscription_topics=subscription_topics,
+        log_level=log_level,
     )
     try:
         rclpy.spin(node)
