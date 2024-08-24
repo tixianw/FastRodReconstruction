@@ -39,25 +39,25 @@ class ReconstructionNode(Node):
         self.set_logger_level(log_level)
         self.get_logger().info("Reconstruction node initializing...")
 
-        self.__subscription_topics = subscription_topics
-        self.__reconstruction_rate = reconstruction_rate
+        self.subscription_topics = subscription_topics
+        self.reconstruction_rate = reconstruction_rate
 
         # Initialize subscribers
         self.get_logger().info("- Subcribers initializing...")
-        self.__subscribers: List[PoseSubscriber] = []
-        for i, topic in enumerate(self.__subscription_topics):
+        self.subscribers: List[PoseSubscriber] = []
+        for i, topic in enumerate(self.subscription_topics):
             subscriber = PoseSubscriber(
                 topic=topic,
                 callback=self.subscriber_callback_closure(i),
                 qos_profile=100,
                 node=self,
             )
-            self.__subscribers.append(subscriber)
+            self.subscribers.append(subscriber)
         self.init_input_data()
 
         # Initialize reconstruction model
         self.get_logger().info("- Reconstruction model initializing...")
-        self.__model = (
+        self.model = (
             ReconstructionModel(
                 data_file_name=model_resource.data_file_name,
                 model_file_name=model_resource.model_file_name,
@@ -68,7 +68,7 @@ class ReconstructionNode(Node):
 
         # Initialize publishers
         self.get_logger().info("- Publishers initializing...")
-        self.__publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
+        self.publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
             "pose": PosePublisher(
                 topic="/vicon/pose",
                 length=self.number_of_markers - 1,
@@ -77,21 +77,21 @@ class ReconstructionNode(Node):
             ),
             "position": NDArrayPublisher(
                 topic="/reconstruction/position",
-                shape=self.__model.result.position.shape,
+                shape=self.model.result.position.shape,
                 axis_labels=("position", "element"),
                 qos_profile=100,
                 node=self,
             ),
             "directors": NDArrayPublisher(
                 topic="/reconstruction/directors",
-                shape=self.__model.result.directors.shape,
+                shape=self.model.result.directors.shape,
                 axis_labels=("directors", "director_index", "element"),
                 qos_profile=100,
                 node=self,
             ),
             "kappa": NDArrayPublisher(
                 topic="/reconstruction/kappa",
-                shape=self.__model.result.kappa.shape,
+                shape=self.model.result.kappa.shape,
                 axis_labels=("kappa", "element"),
                 qos_profile=100,
                 node=self,
@@ -99,16 +99,16 @@ class ReconstructionNode(Node):
         }
 
         # Create a timer for publishing at reconstruction_rate Hz
-        self.__timer = self.create_timer(
-            timer_period_sec=1 / self.__reconstruction_rate,
+        self.timer = self.create_timer(
+            timer_period_sec=1 / self.reconstruction_rate,
             callback=self.timer_callback,
         )
 
     def init_input_data(self) -> None:
-        self.number_of_markers = len(self.__subscribers)
-        self.__input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
-        self.__input_data[0, 3, 3, :] = 1.0
-        self.__input_data[0, :3, :3, :] = np.eye(3)
+        self.number_of_markers = len(self.subscribers)
+        self.input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
+        self.input_data[0, 3, 3, :] = 1.0
+        self.input_data[0, :3, :3, :] = np.eye(3)
 
     def set_logger_level(self, log_level: str) -> None:
         level_map = {
@@ -126,12 +126,12 @@ class ReconstructionNode(Node):
 
     @property
     def result(self) -> ReconstructionResult:
-        return self.__model.result
+        return self.model.result
 
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
-            self.__subscribers[i].receive(msg)
-            self.get_logger().debug(f"{self.__subscribers[i]}")
+            self.subscribers[i].receive(msg)
+            self.get_logger().debug(f"{self.subscribers[i]}")
 
             # self.get_logger().debug(f'{msg.frame_number}')
             # self.get_logger().debug(f'  {msg.x_trans}')
@@ -146,33 +146,33 @@ class ReconstructionNode(Node):
 
     def timer_callback(self) -> None:
         self.reconstruct()
-        self.publish("pose", self.__input_data[0])
+        self.publish("pose", self.input_data[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
         self.publish("kappa", self.result.kappa)
 
     def create_input_data(self) -> np.ndarray:
         # Create input data from the subscribers
-        base_position = self.__subscribers[0].message.position
-        base_directors = self.__subscribers[0].message.directors
-        for i, subscriber in enumerate(self.__subscribers[1:]):
-            self.__input_data[0, :3, 3, i] = (
+        base_position = self.subscribers[0].message.position
+        base_directors = self.subscribers[0].message.directors
+        for i, subscriber in enumerate(self.subscribers[1:]):
+            self.input_data[0, :3, 3, i] = (
                 subscriber.message.position - base_position
             )
-            self.__input_data[0, :3, :3, i] = subscriber.message.directors
+            self.input_data[0, :3, :3, i] = subscriber.message.directors
 
         input_data = pos_dir_to_input(
-            pos=self.__input_data[:, :3, 3, :],
-            dir=self.__input_data[:, :3, :3, :],
+            pos=self.input_data[:, :3, 3, :],
+            dir=self.input_data[:, :3, :3, :],
         )
         return input_data
 
     def reconstruct(self):
-        self.__model(self.create_input_data())
+        self.model(self.create_input_data())
 
     def publish(self, publisher_key: str, data: np.ndarray) -> None:
-        self.__publishers[publisher_key].release(data)
-        self.get_logger().info(f"{self.__publishers[publisher_key]}")
+        self.publishers[publisher_key].release(data)
+        self.get_logger().info(f"{self.publishers[publisher_key]}")
 
 
 def set_subsciption_topics(source: str):
