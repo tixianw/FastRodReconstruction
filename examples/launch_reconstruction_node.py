@@ -99,10 +99,6 @@ class ReconstructionNode(Node):
         }
 
         # Create a timer for publishing at reconstruction_rate Hz
-        # self.timer = self.create_timer(
-        #     timer_period_sec=1 / self.reconstruction_rate,
-        #     callback=self.timer_callback,
-        # )
         self.timer = Timer(
             timer_period_sec=1 / self.reconstruction_rate,
             callback=self.timer_callback,
