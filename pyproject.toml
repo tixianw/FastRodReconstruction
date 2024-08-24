@@ -4,9 +4,9 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "fastdatasmoothing"
+name = "FastRodReconstruction"
 version = "0.1.0"
-description = "Fast Data Smoothing"
+description = "Fast Rod Reconstruction"
 readme = "README.md"
 authors = []
 license = "MIT"
@@ -51,6 +51,8 @@ numba = "^0.58.1"
 tqdm = "^4.64.1"
 torch = "^2.4.0"
 h5py = "^3.0.0"
+click = "^8.1.7"
+scipy = "^1.10.0"
 
 
 [tool.black]
