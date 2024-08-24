@@ -68,7 +68,7 @@ class Timer:
         """
         self.__time = self.get_clock() - self.__init_time
         self.__publisher.publish(Float32(data=self.__time))
-        self.node.get_logger().info(f"{self}")
+        self.node.get_logger().debug(f"{self}")
         self.callback()
 
     def get_clock(self) -> float:

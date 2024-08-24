@@ -179,7 +179,7 @@ class ReconstructionNode(Node):
 
     def publish(self, publisher_key: str, data: np.ndarray) -> None:
         self.__publishers[publisher_key].release(data)
-        self.get_logger().info(f"{self.__publishers[publisher_key]}")
+        self.get_logger().debug(f"{self.__publishers[publisher_key]}")
 
 
 def set_subsciption_topics(source: str):
