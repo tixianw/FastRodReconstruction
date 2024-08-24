@@ -148,6 +148,9 @@ class ReconstructionNode(Node):
         return subscriber_callback
 
     def timer_callback(self) -> None:
+        self.get_logger().info(
+            f"time: {self.timer.time} [sec] -> publishing..."
+        )
         self.reconstruct()
         self.publish("pose", self.input_data[0])
         self.publish("position", self.result.position)
@@ -215,7 +218,7 @@ def set_subsciption_topics(source: str):
         case_sensitive=False,
     ),
     default="vicon",
-    help="Set the source of the listener",
+    help="Set the source of the subscriber",
 )
 def main(log_level: str, source: str):
     rclpy.init()

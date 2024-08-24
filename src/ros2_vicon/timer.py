@@ -43,6 +43,13 @@ class Timer:
             callback=callback,
         )
 
+    @property
+    def time(self) -> float:
+        """
+        Get the current time.
+        """
+        return self.__time
+
     def __str__(self) -> str:
         """
         Return the string information of the Timer
