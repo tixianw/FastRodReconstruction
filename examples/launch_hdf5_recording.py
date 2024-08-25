@@ -51,17 +51,21 @@ class HDF5ReconstructionWriter(threading.Thread):
         self.save_interval = save_interval
 
         self._buffer: dict[str, deque] = {
-            "poses": deque(),
+            "position": deque(),
+            "director": deque(),
+            "kappa": deque(),
         }
         self._data_shape: dict[str, Tuple[int]] = {
-            "poses": (3,),
+            "position": (3, 4),
+            "director": (3, 3, 4),
+            "kappa": (1, 4),
         }
 
-    def append_data(self, data):
+    def append_data(self, key, data):
         """
         Append data to the buffer.
         """
-        self._buffer["poses"].append(data)
+        self._buffer[key].append(data)
         # TODO: Add more data types here
 
     def write_buffer_to_hdf5(self, dset: h5py.Dataset, data_chunk: List):
@@ -127,18 +131,37 @@ class PoseHDF5Writer(Node):
         self.set_logger_level(log_level)
         self.get_logger().info("HDF5 writer node initializing...")
 
-        self.subscription = self.create_subscription(
+        self.subscription_position = self.create_subscription(
             Float64MultiArray,  # TODO: Adjust this to match your message type
-            "/reconstruction/poses",
-            self.listener_callback,
+            "/reconstruction/position",
+            self.listener_callback_position,
             10,
         )
+        self.subscription_director = self.create_subscription(
+            Float64MultiArray,  # TODO: Adjust this to match your message type
+            "/reconstruction/director",
+            self.listener_callback_director,
+            10,
+        )
+        self.subscription_kappa = self.create_subscription(
+            Float64MultiArray,  # TODO: Adjust this to match your message type
+            "/reconstruction/kappa",
+            self.listener_callback_kappa,
+            10,
+        )
+
         # TODO: Path to save h5
-        self.writer = HDF5ReconstructionWriter("poses.h5")
+        self.writer = HDF5ReconstructionWriter("reconstruction.h5")
         self.writer.start()
 
-    def listener_callback(self, msg):
-        self.writer.append_data(msg.data)
+    def listener_callback_position(self, msg):
+        self.writer.append_data("position", msg.data)
+
+    def listener_callback_director(self, msg):
+        self.writer.append_data("director", msg.data)
+
+    def listener_callback_kappa(self, msg):
+        self.writer.append_data("kappa", msg.data)
 
     def destroy_node(self):
         super().destory_node()
