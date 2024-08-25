@@ -71,7 +71,7 @@ class PoseMessage:
         """
         return self.__pose[:3, :3]
 
-    def from_vicon(self, msg: Pose) -> None:
+    def from_vicon(self, msg: Pose) -> bool:
         """
         Read the Pose message data.
         """
@@ -81,11 +81,12 @@ class PoseMessage:
             and msg.z_rot == 0.0
             and msg.w == 0.0
         ):
-            return
+            return False
         self.frame_number = msg.frame_number
         self.quaternion = np.array([msg.x_rot, msg.y_rot, msg.z_rot, msg.w])
         self.__pose[:3, 3] = np.array([msg.x_trans, msg.y_trans, msg.z_trans])
         self.__pose[:3, :3] = Rotation.from_quat(self.quaternion).as_matrix()
+        return True
 
     def __str__(self) -> str:
         """

@@ -40,11 +40,11 @@ class PoseSubscriber:
             qos_profile=self.qos_profile,
         )
 
-    def receive(self, msg: Pose) -> None:
+    def receive(self, msg: Pose) -> bool:
         """
         Read the Pose message data.
         """
-        self.__message.from_vicon(msg)
+        return self.__message.from_vicon(msg)
 
     @property
     def message(self) -> PoseMessage:

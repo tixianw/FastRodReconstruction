@@ -112,6 +112,7 @@ class ReconstructionNode(Node):
         self.input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
         self.input_data[0, 3, 3, :] = 1.0
         self.input_data[0, :3, :3, :] = np.eye(3)
+        self.new_data = False
 
     def set_logger_level(self, log_level: str) -> None:
         level_map = {
@@ -133,7 +134,7 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
-            self.__subscribers[i].receive(msg)
+            self.new_data = self.__subscribers[i].receive(msg)
             self.get_logger().debug(f"{self.__subscribers[i]}")
 
             # self.get_logger().debug(f'{msg.frame_number}')
@@ -148,6 +149,8 @@ class ReconstructionNode(Node):
         return subscriber_callback
 
     def timer_callback(self) -> None:
+        if not self.new_data:
+            return
         self.get_logger().info(
             f"time: {self.timer.time} [sec] -> publishing..."
         )
@@ -156,6 +159,7 @@ class ReconstructionNode(Node):
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
         self.publish("kappa", self.result.kappa)
+        self.new_data = False
 
     def create_input_data(self) -> np.ndarray:
         # Create input data from the subscribers
