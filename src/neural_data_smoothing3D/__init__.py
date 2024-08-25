@@ -3,5 +3,5 @@ from .NN_model import (
     CurvatureSmoothing3DNet,
     TensorConstants,
 )
-from .run_PCA import PCA
+from .my_PCA import PCA
 from .utils import *
