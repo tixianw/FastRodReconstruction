@@ -3,18 +3,17 @@ Created on Aug 21, 2024
 @author: Tixian Wang
 """
 
-import sys
+from importlib import resources
 
-sys.path.append("../")
 import numpy as np
 
-from neural_data_smoothing3D import PCA, pos_dir_to_input
+from assets import ASSETS, FILE_NAME
+from neural_data_smoothing3D import pos_dir_to_input
 
 
 def main():
-    folder_name = "Data/"
-    file_name = "BR2_arm_data"
-    data = np.load(folder_name + file_name + ".npy", allow_pickle="TRUE").item()
+    with resources.path(ASSETS, FILE_NAME) as path:
+        data = np.load(path, allow_pickle="TRUE").item()
 
     ## data point setup
     n_data_pts = 3  # 5 # exlude the initial point at base
@@ -39,7 +38,9 @@ def main():
         data["n_data_pts"] = n_data_pts
         data["idx_data_pts"] = idx_data_pts
         data["input_data"] = input_data
-        np.save("Data/" + file_name + ".npy", data)
+
+        with resources.path(ASSETS, FILE_NAME) as path:
+            np.save(path, data)
 
 
 if __name__ == "__main__":
