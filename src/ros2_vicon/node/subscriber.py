@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 from dataclasses import dataclass
 
-from ros2_vicon.message.pose import PoseMessage
+from ros2_vicon.message.vicon import ViconPoseMessage
 
 try:
     import rclpy
@@ -18,7 +18,7 @@ except ModuleNotFoundError:
 
 
 @dataclass
-class PoseSubscriber:
+class ViconPoseSubscriber:
     """
     Dataclass for Pose message subscriber.
     """
@@ -32,7 +32,7 @@ class PoseSubscriber:
         """
         Initialize the PoseSubscriber object.
         """
-        self.__message = PoseMessage()
+        self.__message = ViconPoseMessage()
         self.__subscription = self.node.create_subscription(
             msg_type=self.__message.TYPE,
             topic=self.topic,
@@ -47,7 +47,7 @@ class PoseSubscriber:
         return self.__message.from_vicon(msg)
 
     @property
-    def message(self) -> PoseMessage:
+    def message(self) -> ViconPoseMessage:
         """
         Return the Pose message data.
         """
@@ -55,10 +55,10 @@ class PoseSubscriber:
 
     def __str__(self) -> str:
         """
-        Return the string information of the PoseSubscriber
+        Return the string information of the ViconPoseSubscriber
         """
         return (
-            f"PoseSubscriber(topic={self.topic}, "
+            f"ViconPoseSubscriber(topic={self.topic}, "
             f"message={self.__message}, "
             f"subscription={self.__subscription})"
         )

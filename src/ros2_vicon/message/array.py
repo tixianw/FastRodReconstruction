@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 
@@ -32,11 +32,10 @@ class NDArrayDescriptor:
         value: np.ndarray = getattr(obj, self.private_name)
         return value
 
-    def __set__(self, obj: object, value: Union[np.ndarray, list]) -> None:
-        if isinstance(value, list):
-            value = np.array(value)
-        if not isinstance(value, np.ndarray):
-            raise TypeError(f"{self.name} must be a numpy array or list")
+    def __set__(self, obj: object, value: np.ndarray) -> None:
+        assert isinstance(
+            value, np.ndarray
+        ), f"{self.name} must be a numpy array"
         if self._shape and value.shape != self._shape:
             raise ValueError(f"{self.name} must have shape {self._shape}")
         setattr(obj, self.private_name, value)
@@ -64,12 +63,15 @@ class NDArrayMessage:
             self.__message.layout.dim.append(dim)
         self.__message.layout.data_offset = 0
 
-    def from_numpy_ndarray(self, data: np.ndarray) -> Float32MultiArray:
+    def from_numpy_ndarray(self, data: np.ndarray) -> "NDArrayMessage":
         assert (
             data.shape == self.shape
         ), f"Data shape {data.shape} must be {self.shape}"
         self.data = data
         self.__message.data = data.flatten().tolist()
+        return self
+
+    def to_message(self) -> Float32MultiArray:
         return self.__message
 
     def __str__(self) -> str:

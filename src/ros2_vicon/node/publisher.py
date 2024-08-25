@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ros2_vicon.message.array import NDArrayMessage
+from ros2_vicon.message.pose import PoseMessage
 
 try:
     import rclpy
@@ -38,7 +39,9 @@ class NDArrayPublisher:
         )
 
     def release(self, data: np.ndarray) -> None:
-        self.__publishing.publish(self.__message.from_numpy_ndarray(data))
+        self.__publishing.publish(
+            self.__message.from_numpy_ndarray(data).to_message()
+        )
 
     def __str__(self) -> str:
         """
@@ -59,9 +62,9 @@ class PosePublisher:
     length: int = 1
 
     def __post_init__(self):
-        self.__message = NDArrayMessage(
-            shape=(4, 4, self.length),
-            axis_labels=["pose", "", "element"],
+        self.__message = PoseMessage(
+            shape=(self.length,),
+            axis_labels=("element",),
         )
         self.__publishing = self.node.create_publisher(
             msg_type=self.__message.TYPE,
@@ -70,7 +73,9 @@ class PosePublisher:
         )
 
     def release(self, data: np.ndarray) -> None:
-        self.__publishing.publish(self.__message.from_numpy_ndarray(data))
+        self.__publishing.publish(
+            self.__message.from_numpy_ndarray(data).to_message()
+        )
 
     def __str__(self) -> str:
         """

@@ -69,14 +69,16 @@ class Timer:
             )
         return info
 
-    def __callback_with_publish(self):
+    def __callback_with_publish(self) -> bool:
         """
         Callback function with publishing the current time.
         """
-        self.__time = self.get_clock() - self.__init_time
-        self.__publisher.publish(Float32(data=self.__time))
-        self.node.get_logger().debug(f"{self}")
-        self.callback()
+        if self.callback():
+            self.__time = self.get_clock() - self.__init_time
+            self.__publisher.publish(Float32(data=self.__time))
+            self.node.get_logger().debug(f"{self}")
+            return True
+        return False
 
     def get_clock(self) -> float:
         """

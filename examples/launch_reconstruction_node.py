@@ -7,7 +7,12 @@ import numpy as np
 
 from neural_data_smoothing3D import pos_dir_to_input
 from reconstruction import ReconstructionModel, ReconstructionResult
-from ros2_vicon import NDArrayPublisher, PosePublisher, PoseSubscriber, Timer
+from ros2_vicon import (
+    NDArrayPublisher,
+    PosePublisher,
+    Timer,
+    ViconPoseSubscriber,
+)
 
 try:
     import rclpy
@@ -44,9 +49,9 @@ class ReconstructionNode(Node):
 
         # Initialize subscribers
         self.get_logger().info("- Subcribers initializing...")
-        self.__subscribers: List[PoseSubscriber] = []
+        self.__subscribers: List[ViconPoseSubscriber] = []
         for i, topic in enumerate(self.subscription_topics):
-            subscriber = PoseSubscriber(
+            subscriber = ViconPoseSubscriber(
                 topic=topic,
                 callback=self.subscriber_callback_closure(i),
                 qos_profile=100,
@@ -148,9 +153,9 @@ class ReconstructionNode(Node):
 
         return subscriber_callback
 
-    def timer_callback(self) -> None:
+    def timer_callback(self) -> bool:
         if not self.new_data:
-            return
+            return False
         self.get_logger().info(
             f"time: {self.timer.time} [sec] -> publishing..."
         )
@@ -160,6 +165,7 @@ class ReconstructionNode(Node):
         self.publish("directors", self.result.directors)
         self.publish("kappa", self.result.kappa)
         self.new_data = False
+        return True
 
     def create_input_data(self) -> np.ndarray:
         # Create input data from the subscribers

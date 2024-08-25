@@ -1,19 +1,8 @@
-from typing import Union
+from typing import Optional, Tuple
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
-from ros2_vicon.message.array import NDArrayDescriptor
-
-try:
-    from vicon_receiver.msg import Position as Pose
-except ModuleNotFoundError:
-    print(
-        "Could not import ROS2 modules. Make sure to source ROS2 workspace first."
-    )
-    import sys
-
-    sys.exit(1)
+from ros2_vicon.message.array import NDArrayDescriptor, NDArrayMessage
 
 
 class QuaternionDescriptor(NDArrayDescriptor):
@@ -21,16 +10,13 @@ class QuaternionDescriptor(NDArrayDescriptor):
     Descriptor for quaternion arrays.
     """
 
-    def __init__(
-        self,
-    ):
+    def __init__(self):
         super().__init__(shape=(4,))
 
-    def __set__(self, obj: object, value: Union[np.ndarray, list]) -> None:
-        if isinstance(value, list):
-            value = np.array(value)
-        if not isinstance(value, np.ndarray):
-            raise TypeError(f"{self.name} must be a numpy array or list")
+    def __set__(self, obj: object, value: np.ndarray) -> None:
+        assert isinstance(
+            value, np.ndarray
+        ), f"{self.name} must be a numpy array"
         if value.shape != self._shape:
             raise ValueError(f"{self.name} must have shape {self._shape}")
         if not np.isclose(np.linalg.norm(value), 1.0):
@@ -38,64 +24,70 @@ class QuaternionDescriptor(NDArrayDescriptor):
         setattr(obj, self.private_name, value)
 
 
-class PoseMessage:
+class PoseDescriptor(NDArrayDescriptor):
+    """
+    Descriptor for pose arrays.
+    """
+
+    def __init__(self):
+        super().__init__(shape=(4, 4))
+
+    def __set__(self, obj: object, value: np.ndarray) -> None:
+        assert isinstance(
+            value, np.ndarray
+        ), f"{self.name} must be a numpy array"
+        if value.shape != self._shape:
+            raise ValueError(
+                f"{self.name} must have shape {self._shape}, and the value have shape {value.shape}"
+            )
+        if not np.isclose(np.linalg.det(value[:3, :3]), 1.0):
+            raise ValueError(f"{self.name} must be SO(3) rotation matrix")
+        if not np.isclose(
+            value[
+                3,
+                3,
+            ],
+            1.0,
+        ):
+            raise ValueError(f"{self.name} must be SE(3) transformation matrix")
+        setattr(obj, self.private_name, value)
+
+
+class PoseMessage(NDArrayMessage):
     """
     Class for Pose message data.
     """
 
-    TYPE = Pose
-    quaternion = QuaternionDescriptor()
-
-    def __init__(
-        self,
-    ):
+    def __init__(self, shape: Tuple[int], axis_labels: Tuple[str]):
         """
         Initialize the PoseMessage object.
         """
-        self.frame_number: int = 0
-        self.__pose = np.zeros((4, 4))
-        self.__pose[3, 3] = 1.0
-        self.quaternion = np.array([1.0, 0.0, 0.0, 0.0])
+        super().__init__(
+            shape=(4, 4) + shape, axis_labels=("pose", "") + axis_labels
+        )
 
     @property
     def position(self) -> np.ndarray:
         """
         Return the position vector.
         """
-        return self.__pose[:3, 3]
+        return self.data[:3, 3, ...]
 
     @property
     def directors(self) -> np.ndarray:
         """
         Return the directors matrix.
         """
-        return self.__pose[:3, :3]
-
-    def from_vicon(self, msg: Pose) -> bool:
-        """
-        Read the Pose message data.
-        """
-        if (
-            msg.x_rot == 0.0
-            and msg.y_rot == 0.0
-            and msg.z_rot == 0.0
-            and msg.w == 0.0
-        ):
-            return False
-        self.frame_number = msg.frame_number
-        self.quaternion = np.array([msg.x_rot, msg.y_rot, msg.z_rot, msg.w])
-        self.__pose[:3, 3] = np.array([msg.x_trans, msg.y_trans, msg.z_trans])
-        self.__pose[:3, :3] = Rotation.from_quat(self.quaternion).as_matrix()
-        return True
+        return self.data[:3, :3, ...]
 
     def __str__(self) -> str:
         """
-        Return the string information of the PoseMsg object.
+        Return the string information of the PoseMessage object.
         """
         return (
             f"\nPoseMessage(\n"
-            f"    frame_number={self.frame_number},\n"
-            f"    quaternion={np.array2string(self.quaternion, precision=4, suppress_small=True)},\n"
-            f"    pose=\n{np.array2string(self.__pose, precision=4, suppress_small=True)},\n"
+            f"    shape={self.shape},\n"
+            f"    axis_labels={self.axis_labels},\n"
+            f"    pose=\n{np.array2string(self.data, precision=4, suppress_small=True)},\n"
             f")"
         )
