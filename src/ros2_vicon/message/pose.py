@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from ros2_vicon.array import NDArrayDescriptor
+from ros2_vicon.message.array import NDArrayDescriptor
 
 try:
     from vicon_receiver.msg import Position as Pose

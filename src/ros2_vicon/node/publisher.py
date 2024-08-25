@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ros2_vicon.array import NDArrayMessage
+from ros2_vicon.message.array import NDArrayMessage
 
 try:
     import rclpy

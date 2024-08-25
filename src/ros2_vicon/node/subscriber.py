@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 from dataclasses import dataclass
 
-from ros2_vicon.pose import PoseMessage
+from ros2_vicon.message.pose import PoseMessage
 
 try:
     import rclpy
