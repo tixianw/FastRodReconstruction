@@ -111,7 +111,7 @@ def main():
 
     plt.show()
 
-    flag_save = 1
+    flag_save = 0
 
     if flag_save:
         import os
