@@ -43,6 +43,7 @@ Remain in the second terminal, and download this repository into the running con
 git clone https://github.com/tixianw/FastRodReconstruction.git
 cd FastRodReconstruction
 ```
+> Note: If `git clone` causes too many trouble for you, one may also copy the downloaded repository from your local system to the container. For more detail, check the docker documentation on the command: [`docker cp`](https://docs.docker.com/reference/cli/docker/container/cp/).
 
 Now, follow the next two steps and its corresponding instruction to install Poetry and set up the package:
 
