@@ -2,17 +2,29 @@
 PYTHON := python3
 PYTHONPATH := `pwd`
 
-#* Poetry: the dependency management and packaging tool for Python
-.PHONY: poetry-install
-poetry-install:
-	curl -sSL https://install.python-poetry.org/ | $(PYTHON) -
+# Define color codes
+BOLD := \033[1m
+GREEN := \033[0;32m
+RESET := \033[0m
 
-.PHONY: poetry-remove
-poetry-remove:
+#* Poetry: the dependency management and packaging tool for Python
+.PHONY: install-poetry
+install-poetry:
+	curl -sSL https://install.python-poetry.org/ | $(PYTHON) -
+	@if ! echo $$PATH | grep -q "$(HOME)/.local/bin"; then \
+		echo "================================="; \
+		echo "Adding $(HOME)/.local/bin to PATH"; \
+		echo 'export PATH="$(HOME)/.local/bin:$$PATH"' >> $(HOME)/.bashrc; \
+		echo "Please run $(GREEN)'source $(HOME)/.bashrc'$(RESET) to activate poetry"; \
+		echo "================================="; \
+	fi
+
+.PHONY: uninstall-poetry
+uninstall-poetry:
 	curl -sSL https://install.python-poetry.org/ | $(PYTHON) - --uninstall
 
 #* Installation
-.PHONY: check-env install activate-env
+.PHONY: check-env install
 
 # Store the initial environment path
 INITIAL_ENV := $(shell poetry env info --path 2>/dev/null)
@@ -25,19 +37,20 @@ install: check-env
 	poetry install -n
 	@NEW_ENV=$$(poetry env info --path 2>/dev/null); \
 	if [ "$$NEW_ENV" != "$(INITIAL_ENV)" ]; then \
+		echo "================================="; \
 		echo "New virtual environment detected at: $$NEW_ENV"; \
-		echo "Activating environment and running Python..."; \
-		poetry shell -c "python -c 'import sys; print(f\"Python {sys.version} on {sys.platform}\")'; exec /bin/bash"; \
-	else \
-		echo "No new virtual environment detected."; \
+		echo "To activate environment and run Python with the package, please run $(GREEN)'make activate-env'$(RESET)"; \
+		echo "To deactivate environment, please run $(GREEN)'exit'$(RESET)"; \
+		echo "================================="; \
 	fi
 
+.PHONY: activate-env
 activate-env:
 	poetry shell
 
 #* Installation of pre-commit: tool of Git hook scripts
-.PHONY: pre-commit-install
-pre-commit-install:
+.PHONY: install-pre-commit
+install-pre-commit:
 	poetry run pre-commit install
 
 #* Unittests

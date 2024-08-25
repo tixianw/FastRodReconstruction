@@ -6,7 +6,7 @@
 ## Prerequisites
 
 - Docker installed on your system: [ros2-vicon](https://github.com/hanson-hschang/ros2-vicon)
-- Three terminal windows available
+- Two terminal windows available
 - Connect to the Vicon wifi if available
 - For developers, please see the `README.md` file under `src`
 
@@ -38,13 +38,25 @@ root@7cb5009f616f:/#
 ```
 
 ## Step 3: Install this Fast Rod Reconstruction directory
-Remain in the second terminal, and use the following commands to download and install this directory into the running container:
+Remain in the second terminal, and download this repository into the running container:
 ```
 git clone https://github.com/tixianw/FastRodReconstruction.git
 cd FastRodReconstruction
-make poetry-install
+```
+
+Now, follow the next two steps and its corresponding instruction to install Poetry and set up the package:
+
+1. Install Poetry:
+```
+make install-poetry
+```
+> **Important**: If you see a message about adding additional directory to your `PATH`, make sure to follow the provided instructions to make this change.
+
+2. Install the repository as a package:
+```
 make install
 ```
+> **Important**: Poetry manages its own virtual environments. If you're not already in a virtual environment, Poetry will create a new one for this project. To activate this environment and use the installed package, please follow the provided instructions.
 
 ## Step 4: Launch the Reconstruction Node
 Change directory to the `examples` folder:
