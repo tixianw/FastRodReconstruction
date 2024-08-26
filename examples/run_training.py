@@ -84,7 +84,7 @@ def main():
         output_size,
     )
     ## Train the model
-    num_epochs = int(10)
+    num_epochs = int(100)
     batch_size = 128  # 128 # 100
     print(
         "# total samples:",

@@ -123,8 +123,6 @@ def main():
 			axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
 			axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
-	plt.show()
-
 	flag_save = 0
 
 	if flag_save:
@@ -149,6 +147,8 @@ def main():
 			"true_shear": strain_rand[1],
 		}
 		np.save(folder_name + "/training_data_set_octopus.npy", training_data)
+	
+	plt.show()
 
 
 if __name__ == "__main__":
