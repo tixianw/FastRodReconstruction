@@ -77,6 +77,7 @@ class ReconstructionNode(Node):
             "pose": PosePublisher(
                 topic="/vicon/pose",
                 length=self.number_of_markers - 1,
+                label="element",
                 qos_profile=100,
                 node=self,
             ),

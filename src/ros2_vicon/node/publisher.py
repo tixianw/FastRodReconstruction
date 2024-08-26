@@ -60,11 +60,12 @@ class PosePublisher:
     qos_profile: Union[rclpy.qos.QoSProfile, int]
     node: Node
     length: int = 1
+    label: str = "element"
 
     def __post_init__(self):
         self.__message = PoseMessage(
             shape=(self.length,),
-            axis_labels=("element",),
+            axis_labels=(self.label,),
         )
         self.__publishing = self.node.create_publisher(
             msg_type=self.__message.TYPE,
