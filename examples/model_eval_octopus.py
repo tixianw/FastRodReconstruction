@@ -89,12 +89,12 @@ print(
 print("min_loss:", min(losses))
 
 plt.figure(0)
-plt.semilogy(np.arange(len(losses)), losses, ls="-", label="train")
+plt.semilogy(np.arange(len(losses))/n_iter, losses, ls="-", label="train")
 plt.semilogy(
-    np.arange(len(vlosses)) * n_iter, vlosses, ls="--", label="validation"
+    np.arange(len(vlosses)), vlosses, ls="--", label="validation"
 )
-plt.scatter(len(losses), test_loss, s=50, marker="o", color="C3", label="test")
-plt.xlabel("epochs * iterations")
+plt.scatter(len(vlosses), test_loss, s=50, marker="o", color="C3", label="test")
+plt.xlabel("epochs") #  * iterations
 plt.ylabel("losses")
 plt.legend()
 
