@@ -11,10 +11,9 @@ import numpy.random as npr
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
-from torch.utils.data import DataLoader, Dataset, Subset, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 
-# from neural_data_smoothing3D import PCA
-from neural_data_smoothing3D.utils import (
+from neural_data_smoothing3D_full.utils import (
     _aver,
     coeff2posdir_torch,
     coeff2strain_torch,
@@ -25,6 +24,7 @@ class TensorConstants:
     def __init__(
         self,
         bend_twist_stiff,
+        shear_stretch_stiff,
         idx_data_pts,
         dl,
         chi_r,
@@ -34,23 +34,29 @@ class TensorConstants:
         output_size,
     ):
         self.bend_twist_stiff = torch.from_numpy(bend_twist_stiff).float()
+        self.shear_stretch_stiff = torch.from_numpy(shear_stretch_stiff).float()
         self.idx_data_pts = torch.from_numpy(idx_data_pts)
         self.dl = torch.from_numpy(dl).float()
         nominal_shear = np.vstack([np.zeros([2, 100]), np.ones(100)])
         self.nominal_shear = torch.from_numpy(nominal_shear).float()
         self.chi_r = chi_r
         self.chi_d = chi_d
-        pca_mean = np.vstack([pca[i].mean for i in range(len(pca))])
-        pca_std = np.vstack([pca[i].std for i in range(len(pca))])
-        n_components = np.array([pca[i].n_components for i in range(len(pca))])
+        num_strain = len(pca)
+        pca_mean = [np.vstack([pca[i].mean for i in range(3)]), 
+                    np.vstack([pca[i+3].mean for i in range(3)])]
+        pca_std = [np.vstack([pca[i].std for i in range(3)]), 
+                   np.vstack([pca[i+3].std for i in range(3)])]
+        n_components = np.array([pca[i].n_components for i in range(num_strain)])
         self.n_components = torch.from_numpy(n_components)
-        self.pca_mean = torch.from_numpy(pca_mean).float()
-        self.pca_std = torch.from_numpy(pca_std).float()
-        pca_components = np.hstack([pca[i].components for i in range(len(pca))])
-        self.pca_components = torch.from_numpy(pca_components).float()
+        self.pca_mean = [torch.from_numpy(pca_mean[0]).float(), torch.from_numpy(pca_mean[1]).float()]
+        self.pca_std = [torch.from_numpy(pca_std[0]).float(), torch.from_numpy(pca_std[1]).float()]
+        pca_components = [np.hstack([pca[i].components for i in range(3)]), 
+                          np.hstack([pca[i+3].components for i in range(3)])]
+        self.pca_components = [torch.from_numpy(pca_components[0]).float(), torch.from_numpy(pca_components[1]).float()]
+        # print(self.pca_mean[0].shape, self.pca_mean[1].shape, self.pca_std[0].shape, self.pca_std[1].shape, 
+            #   self.pca_components[0].shape, self.pca_components[1].shape)
         self.input_size = input_size
         self.output_size = output_size
-
 
 class CustomLoss(nn.Module):
     def __init__(self, tensor_constants):
@@ -58,11 +64,15 @@ class CustomLoss(nn.Module):
         self.tensor_constants = tensor_constants
 
     def forward(self, outputs, labels):
-        kappa_hat = coeff2strain_torch(outputs, self.tensor_constants)
-        diff = kappa_hat - labels
+        strain_hat = coeff2strain_torch(outputs, self.tensor_constants)
+        diff_kappa = strain_hat[0] - labels[0]
+        diff_shear = strain_hat[1] - labels[1]
         loss = 0.5 * torch.sum(
-            diff * diff * _aver(self.tensor_constants.dl), axis=(1, 2)
-        )  # *self.tensor_constants.EI
+            diff_kappa * diff_kappa * _aver(self.tensor_constants.dl), axis=(1, 2)
+        )
+        loss += 0.5 * torch.sum(
+            diff_shear * diff_shear * self.tensor_constants.dl, axis=(1, 2)
+        )
         return loss.mean()
 
 
@@ -80,6 +90,16 @@ class CurvatureSmoothing3DLoss(nn.Module):
                 self.kappa_hat,
             )
             * _aver(self.tensor_constants.dl),
+            axis=1,
+        )
+        V += 0.5 * torch.sum(
+            torch.einsum(
+                "nik,ijk,njk->nk",
+                self.shear_hat,
+                self.tensor_constants.shear_stretch_stiff,
+                self.shear_hat,
+            )
+            * self.tensor_constants.dl,
             axis=1,
         )
         return V.mean()
@@ -110,10 +130,7 @@ class CurvatureSmoothing3DLoss(nn.Module):
         input_data: discrete position data points
         outputs: weights of PCA compunents for approximated targ et curvature
         """
-        # inputs = torch.flatten(inputs)
-        # outputs = torch.flatten(outputs)
-        # self.kappa_hat = torch.mv(self.tensor_constants.pca_components, outputs)
-        self.kappa_hat = coeff2strain_torch(outputs, self.tensor_constants)
+        [self.kappa_hat, self.shear_hat] = coeff2strain_torch(outputs, self.tensor_constants)
         J = self.potential_energy()
         # print('V:', J.data, 'Phi:', self.data_matching_cost(inputs, outputs).data)
         J += self.data_matching_cost(inputs, outputs)
@@ -130,11 +147,11 @@ class CurvatureSmoothing3DNet(nn.Module):
             nn.SiLU()
         )  # nn.ReLU() # nn.GELU() # convergence speed: GELU > SiLU > ReLU
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(input_size, 32),
+            nn.Linear(input_size, 64),
             self.activation,
-            nn.Linear(32, 16),
+            nn.Linear(64, 32),
             self.activation,
-            nn.Linear(16, output_size),
+            nn.Linear(32, output_size),
         )
 
     def forward(self, x):
@@ -166,8 +183,6 @@ class CurvatureSmoothing3DModel:
         labels=None,
     ):
         self.tensor_constants = tensor_constants
-        # self.input_size = len(tensor_constants.idx_data_pts) * 2
-        # self.output_size = tensor_constants.pca_components.shape[1] # + 1
         self.input_size = tensor_constants.input_size
         self.output_size = tensor_constants.output_size
         self.net = CurvatureSmoothing3DNet(self.input_size, self.output_size)
@@ -317,6 +332,7 @@ def main():
     bend_twist_stiff = ((_aver(A)) ** 2 / (4 * np.pi))[None, None, :] * np.diag(
         [E, E, 2 * G]
     )[..., None]
+    shear_stretch_stiff = A[None, None, :] * np.diag([G*4/3, G*4/3, E])[..., None]
 
     power_chi_r = 5  # 6 # 5 # 4 # 3
     power_chi_d = 5
@@ -326,6 +342,7 @@ def main():
 
     tensor_constants = TensorConstants(
         bend_twist_stiff,
+        shear_stretch_stiff,
         idx_data_pts,
         dl,
         chi_r,

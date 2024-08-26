@@ -5,7 +5,6 @@ Created on Aug 18, 2024
 
 import numpy as np
 import torch
-
 # from tqdm import tqdm
 from numba import njit
 
@@ -38,7 +37,7 @@ def _aver_kernel(array):
 
 def coeff2strain(
     coeff, pca
-):  # , nominal_shear=np.vstack([np.zeros([2,100]), np.ones(100)])):
+):
     num_strain = len(pca)
     strain = []
     start_coeff_idx = 0
@@ -48,35 +47,33 @@ def coeff2strain(
             pca[i].approximate(coeff[:, start_coeff_idx:end_coeff_idx])
         )
         start_coeff_idx = end_coeff_idx
-    kappa = np.stack(strain, axis=1)
-    # shear = np.stack([nominal_shear for i in range(len(kappa))])
-    # if num_strain == 6:
-    # shear = np.hstack(strain[3:])
-    return kappa  # [kappa, shear]
+    kappa = np.stack(strain[:3], axis=1)
+    shear = np.stack(strain[3:], axis=1)
+    return [kappa, shear]
 
 
 def strain2posdir(
-    strain, dl, nominal_shear
-):  # np.vstack([np.zeros([2,100]), np.ones(100)])
-    n_sample = len(strain)  # len(strain[0])
+    strain, dl
+):
+    n_sample = len(strain[0])
     n_elem = len(dl)
     position = np.zeros([n_sample, 3, n_elem + 1])
     director = np.zeros([n_sample, 3, 3, n_elem])
     director[:, :, :, 0] = np.diag([1, -1, -1])
     for i in range(n_sample):
         forward_path(
-            dl, nominal_shear, strain[i], position[i], director[i]
-        )  # strain[1][i]
+            dl, strain[1][i], strain[0][i], position[i], director[i]
+        )  # nominal_shear
     return [position, director]
 
 
-def coeff2posdir(coeff, pca, dl, nominal_shear):
+def coeff2posdir(coeff, pca, dl):
     strain = coeff2strain(coeff, pca)
-    posdir = strain2posdir(strain, dl, nominal_shear)
+    posdir = strain2posdir(strain, dl)
     return posdir
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def forward_path(dl, shear, kappa, position_collection, director_collection):
     for i in range(dl.shape[0] - 1):
         next_position(
@@ -92,7 +89,7 @@ def forward_path(dl, shear, kappa, position_collection, director_collection):
     )
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def next_position(director, delta, positions):
     positions[:, 1] = positions[:, 0]
     for index_i in range(3):
@@ -101,7 +98,7 @@ def next_position(director, delta, positions):
     return
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def next_director(axis, directors):
     Rotation = get_rotation_matrix(axis)
     for index_i in range(3):
@@ -114,7 +111,7 @@ def next_director(axis, directors):
     return
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def get_rotation_matrix(axis):
     angle = np.sqrt(axis[0] ** 2 + axis[1] ** 2 + axis[2] ** 2)
 
@@ -148,30 +145,37 @@ def get_rotation_matrix(axis):
 
 ### torch version
 
-
 def coeff2strain_torch(coeff, tensor_constants):
     num_strain = len(tensor_constants.n_components)
     strain = []
     start_coeff_idx = 0
-    for i in range(num_strain):
-        end_coeff_idx = start_coeff_idx + tensor_constants.n_components[i]
-        kappa_hat_scaled = torch.einsum(
-            "nj,ij->ni",
-            coeff[:, start_coeff_idx:end_coeff_idx],
-            tensor_constants.pca_components[:, start_coeff_idx:end_coeff_idx],
-        )  ## n is batch size
-        kappa_hat = (
-            kappa_hat_scaled * tensor_constants.pca_std[i, :]
-            + tensor_constants.pca_mean[i, :]
-        )
-        strain.append(kappa_hat)
-        start_coeff_idx = end_coeff_idx
-    return torch.stack(strain, axis=1)
+    for j in range(2):
+        start_component_idx = 0
+        for i in range(3):
+            end_coeff_idx = start_coeff_idx + tensor_constants.n_components[i+j*3]
+            end_component_idx = start_component_idx + tensor_constants.n_components[i+j*3]
+            strain_hat_scaled = torch.einsum(
+                "nj,ij->ni",
+                coeff[:, start_coeff_idx:end_coeff_idx],
+                tensor_constants.pca_components[j][:, start_component_idx:end_component_idx],
+            )  ## n is batch size
+            strain_hat = (
+                strain_hat_scaled * tensor_constants.pca_std[j][i, :]
+                + tensor_constants.pca_mean[j][i, :]
+            )
+            strain.append(strain_hat)
+            # print(start_coeff_idx, end_coeff_idx, start_component_idx, end_component_idx)
+            start_coeff_idx = end_coeff_idx
+            start_component_idx = end_component_idx
+    
+    kappa = torch.stack(strain[:3], axis=1)
+    shear = torch.stack(strain[3:], axis=1)
+    return [kappa, shear]
 
 
 def strain2posdir_torch(strain, tensor_constants):
     pos_dir = forward_path_torch(
-        tensor_constants.dl, tensor_constants.nominal_shear, strain
+        tensor_constants.dl, strain[1], strain[0]
     )
     return [
         pos_dir[0][..., tensor_constants.idx_data_pts],
@@ -204,21 +208,9 @@ def forward_path_torch(dl, shear, kappa):
 
 
 def integrate_for_position(directors, delta):
-    arrays = torch.einsum("nijk,jk->nik", directors, delta)
+    arrays = torch.einsum("nijk,njk->nik", directors, delta)
     positions = torch.cumsum(arrays, dim=-1)
     return positions
-
-
-# # @njit(cache=True)
-# def next_position_torch(director, delta, positions):
-# 	positions[:, 1] = positions[:, 0] + torch.mv(director, delta)
-# 	return
-
-# # @njit(cache=True)
-# def next_director_torch(axis, directors):
-# 	Rotation = get_rotation_matrix_torch(axis)
-# 	directors[:, :, 1] = torch.einsum('ij,jk->ik', directors[:, :, 0], Rotation)
-# 	return
 
 
 # @njit(cache=True)
@@ -247,6 +239,4 @@ def get_rotation_matrix_torch(axis):
         + K2 * (1 - torch.cos(angle))[:, None, None, :]
         + torch.eye(3)[None, ..., None]
     )
-    # Rotation = torch.matmul(K, torch.sin(angle)) + torch.matmul(K2, (1 - torch.cos(angle))) + torch.eye(3)
-    # print(Rotation.shape)
     return Rotation
