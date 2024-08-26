@@ -1,7 +1,7 @@
 from typing import Dict
 
 import time
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from threading import Event, Thread
 
@@ -23,14 +23,19 @@ class HDF5Writer(Thread):
     node: LoggerNode
     chunk_size: int = 100
     writer_period_sec: float = 0.1
+    verbose: bool = False
 
     def __post_init__(self):
         super().__init__()
 
-        self.write_file_event = Event()
-        self.write_file_event.set()
+        self.writer_event = Event()
+        self.writer_event.set()
 
         self._buffer = {key: deque() for key in self.messages.keys()}
+
+        self.log_verbose: callable = (
+            self.node.log_info if self.verbose else self.node.log_debug
+        )
 
     def __hash__(self) -> int:
         return hash(id(self))
@@ -39,6 +44,7 @@ class HDF5Writer(Thread):
         self._buffer[key].append(self.messages[key].from_message(msg).to_hdf5())
 
     def write_to_hdf5(self, f: h5py.File) -> None:
+        chunk_size_dict = defaultdict(float)
         for key in self._buffer.keys():
             chunk_size = min(len(self._buffer[key]), self.chunk_size)
             self.node.log_debug(
@@ -51,6 +57,18 @@ class HDF5Writer(Thread):
             dset = f[key]
             dset.resize(dset.shape[0] + chunk_size, axis=0)
             dset[-chunk_size:] = np.asarray(data_chunk)
+            chunk_size_dict[key] = chunk_size
+
+        if len(list(set(list(chunk_size_dict.values())))) == 1:
+            self.log_verbose(
+                f"Writing chunk to HDF5 file... with same chunk size {chunk_size}. Done!"
+            )
+        else:
+            self.log_verbose(
+                f"Writing chunk to HDF5 file... with different chunk size. Done!"
+            )
+            for key, chunk_size in chunk_size_dict.items():
+                self.log_verbose(f"chunk size of {key}: {chunk_size}")
 
     def is_filled(self) -> bool:
         return (
@@ -72,7 +90,7 @@ class HDF5Writer(Thread):
                     chunks=True,
                 )
 
-            while self.write_file_event.is_set():
+            while self.writer_event.is_set():
                 if self.is_filled():
                     self.write_to_hdf5(f)
                 time.sleep(self.writer_period_sec)
@@ -81,5 +99,5 @@ class HDF5Writer(Thread):
                 self.write_to_hdf5(f)
 
     def stop(self):
-        self.write_file_event.clear()
+        self.writer_event.clear()
         self.join()

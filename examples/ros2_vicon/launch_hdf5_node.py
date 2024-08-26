@@ -23,6 +23,7 @@ class WriterInfo:
     file_name: str
     chunk_size: int
     writing_rate: float = 10.0
+    verbose: bool = False
 
 
 class HDF5WriterNode(LoggerNode):
@@ -64,6 +65,7 @@ class HDF5WriterNode(LoggerNode):
             node=self,
             chunk_size=self.writer_info.chunk_size,
             writer_period_sec=1.0 / self.writer_info.writing_rate,
+            verbose=self.writer_info.verbose,
         )
         self.ready()
         self.writer.start()
@@ -145,6 +147,13 @@ def main(
     ros2_vicon.init()
 
     subscriptions_info = {
+        "time": SubscriptionInfo(
+            topic="/time",
+            message=NDArrayMessage(
+                shape=(1,),
+                axis_labels=("time",),
+            ),
+        ),
         "pose": SubscriptionInfo(
             topic="/vicon/pose",
             message=PoseMessage(
@@ -178,6 +187,7 @@ def main(
         file_name=file_name,
         chunk_size=chunk_size,
         writing_rate=writing_rate,
+        verbose=True,
     )
     node = HDF5WriterNode(
         subscriptions_info=subscriptions_info,
