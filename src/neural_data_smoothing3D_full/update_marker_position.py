@@ -7,16 +7,18 @@ from importlib import resources
 
 import numpy as np
 
-from assets import ASSETS, FILE_NAME
-from neural_data_smoothing3D import pos_dir_to_input
+from assets import ASSETS
+from assets import FILE2_NAME as FILE_NAME
+from neural_data_smoothing3D_full import pos_dir_to_input
 
 
 def main():
     with resources.path(ASSETS, FILE_NAME) as path:
+        print('Reading file', FILE_NAME, '...')
         data = np.load(path, allow_pickle="TRUE").item()
 
     ## data point setup
-    n_data_pts = 3  # 5 # exlude the initial point at base
+    n_data_pts = 9  # 5 # exlude the initial point at base
     idx_data_pts = np.array(
         [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
     )
@@ -33,7 +35,7 @@ def main():
     flag_save = 0
 
     if flag_save:
-        print("updating data...")
+        print("updating data to file", FILE_NAME, '...')
 
         data["n_data_pts"] = n_data_pts
         data["idx_data_pts"] = idx_data_pts

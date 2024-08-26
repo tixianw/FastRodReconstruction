@@ -30,7 +30,7 @@ def main():
     nominal_shear = data["model"]["nominal_shear"]
     
     ## data point setup
-    n_data_pts = 3  # 5 # exlude the initial point at base
+    n_data_pts = 9  # 5 # exlude the initial point at base
     idx_data_pts = np.array(
         [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
     )
