@@ -75,19 +75,6 @@ def main():
         data["pca"] = pca_list
         np.save(folder_name + '/' + FILE_NAME, data)
 
-    # np.random.seed(2024)
-    # idx_list = np.random.randint(len(true_kappa), size=10) # [i*10 for i in range(10)]
-    # pos_approximate = curvature2position(kappa_approximate)
-    # for ii in range(len(idx_list)):
-    # 	i = idx_list[ii]
-    # 	plt.figure(1)
-    # 	plt.plot(s[1:-1], true_kappa[i,:], color=color[ii], ls='-')
-    # 	plt.plot(s[1:-1], kappa_approximate[i,:], color=color[ii], ls='--')
-    # 	plt.figure(2)
-    # 	plt.plot(pos_approximate[i,0,:], pos_approximate[i,1,:], color=color[ii], ls='-')
-    # 	plt.plot(true_pos[i,0,:], true_pos[i,1,:], color=color[ii], ls='--')
-    # 	plt.scatter(input_data[i,0,:], input_data[i,1,:], s=50, marker='o', color=color[ii])
-
     for i in range(len(n_components)):
         print('strain', i, ': mean =', pca_list[i].mean.mean(), ', std =', pca_list[i].std.std())
         plt.figure(i)
