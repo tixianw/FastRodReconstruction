@@ -26,7 +26,7 @@ with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
 folder_name = "assets" # 'Data' # 
-test_data_name = "training_data_set.npy"
+test_data_name = "training_data_set_br2.npy"
 model_name = 'data_smoothing_model_br2_test.pt'
 if not os.path.exists(folder_name):
     with resources.path(ASSETS, MODEL_NAME) as path:
@@ -81,12 +81,12 @@ print(
 print("min_loss:", min(losses))
 
 plt.figure(0)
-plt.semilogy(np.arange(len(losses)), losses, ls="-", label="train")
+plt.semilogy(np.arange(len(losses))/n_iter, losses, ls="-", label="train")
 plt.semilogy(
-    np.arange(len(vlosses)) * n_iter, vlosses, ls="--", label="validation"
+    np.arange(len(vlosses)), vlosses, ls="--", label="validation"
 )
-plt.scatter(len(losses), test_loss, s=50, marker="o", color="C3", label="test")
-plt.xlabel("epochs * iterations")
+plt.scatter(len(vlosses), test_loss, s=50, marker="o", color="C3", label="test")
+plt.xlabel("epochs") #  * iterations
 plt.ylabel("losses")
 plt.legend()
 

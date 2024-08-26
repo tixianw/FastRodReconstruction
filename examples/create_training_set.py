@@ -19,6 +19,8 @@ def main():
 
     with resources.path(ASSETS, FILE_NAME) as path:
         data = np.load(path, allow_pickle="TRUE").item()
+    
+    print('number of markers (excluding the base):', data['n_data_pts'])
 
     n_elem = data["model"]["n_elem"]
     L = data["model"]["L"]
@@ -52,7 +54,7 @@ def main():
     # coeffs_low = coeffs.min(axis=0)
     # coeffs_high = coeffs.max(axis=0)
     npr.seed(2024)
-    n_training_data = int(1e4)
+    n_training_data = int(1e5)
     coeffs_rand = (
         npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
     )
@@ -109,8 +111,6 @@ def main():
         for j in range(3):
             axes[j].plot(s[1:-1], strain_rand[i, j, :])
 
-    plt.show()
-
     flag_save = 1
 
     if flag_save:
@@ -133,7 +133,9 @@ def main():
             "true_kappa": strain_rand,
             "true_shear": nominal_shear,
         }
-        np.save(folder_name + "/training_data_set.npy", training_data)
+        np.save(folder_name + "/training_data_set_br2.npy", training_data)
+    
+    plt.show()
 
 
 if __name__ == "__main__":

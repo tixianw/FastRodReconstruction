@@ -19,7 +19,7 @@ from neural_data_smoothing3D.utils import _aver
 def main():
 
     folder_name = "assets"
-    training_data_name = "training_data_set.npy"
+    training_data_name = "training_data_set_br2.npy"
     if not os.path.exists(folder_name):
         raise FileNotFoundError("Run create_training_set.py first")
 
@@ -84,7 +84,7 @@ def main():
         output_size,
     )
     ## Train the model
-    num_epochs = int(10)
+    num_epochs = int(100)
     batch_size = 128  # 128 # 100
     print(
         "# total samples:",
