@@ -47,7 +47,7 @@ class PCA:
         idx = np.argsort(eig_val)[::-1]
         eig_val = eig_val[idx]
         eig_vec = eig_vec[:, idx]
-        print(eig_val[: self.n_components].sum() / eig_val.sum())
+        print('sum ratio of principle eigenvalues:', eig_val[: self.n_components].sum() / eig_val.sum())
         ## feature reductino
         self.components = eig_vec[:, : self.n_components]
 

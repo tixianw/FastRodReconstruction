@@ -1,5 +1,5 @@
 """
-Created on Aug 25, 2024
+Created on Aug 5, 2024
 @author: Tixian Wang
 """
 
@@ -47,7 +47,7 @@ class PCA:
         idx = np.argsort(eig_val)[::-1]
         eig_val = eig_val[idx]
         eig_vec = eig_vec[:, idx]
-        print(eig_val[: self.n_components].sum() / eig_val.sum())
+        print('sum ratio of principle eigenvalues:', eig_val[: self.n_components].sum() / eig_val.sum())
         ## feature reductino
         self.components = eig_vec[:, : self.n_components]
 
@@ -64,3 +64,61 @@ class PCA:
         X_hat = coeff @ self.components.T * self.std + self.mean
         return X_hat
 
+
+def main():
+    folder_name = "Data/"
+    file_name = "BR2_arm_data"
+    data = np.load(folder_name + file_name + ".npy", allow_pickle="TRUE").item()
+
+    n_elem = data["model"]["n_elem"]
+    L = data["model"]["L"]
+    radius = data["model"]["radius"]
+    s = data["model"]["s"]
+    dl = data["model"]["dl"]
+    nominal_shear = data["model"]["nominal_shear"]
+    # idx_data_pts = data['idx_data_pts']
+    # input_data = data['input_data']
+    # true_pos = data['true_pos']
+    # true_dir = data['true_dir']
+    true_kappa = data["true_kappa"]
+
+    n_components = np.array([3, 3, 3])
+    pca_list = []
+    for i in range(len(n_components)):
+        pca = PCA(n_components=n_components[i])
+        pca.fit(true_kappa[:, i, :])
+        pca_list.append(pca)
+
+    flag_save = 0
+
+    if flag_save:
+        print("saving data...")
+
+        data["pca"] = pca_list
+        np.save("Data/" + file_name + ".npy", data)
+
+    # np.random.seed(2024)
+    # idx_list = np.random.randint(len(true_kappa), size=10) # [i*10 for i in range(10)]
+    # pos_approximate = curvature2position(kappa_approximate)
+    # for ii in range(len(idx_list)):
+    # 	i = idx_list[ii]
+    # 	plt.figure(1)
+    # 	plt.plot(s[1:-1], true_kappa[i,:], color=color[ii], ls='-')
+    # 	plt.plot(s[1:-1], kappa_approximate[i,:], color=color[ii], ls='--')
+    # 	plt.figure(2)
+    # 	plt.plot(pos_approximate[i,0,:], pos_approximate[i,1,:], color=color[ii], ls='-')
+    # 	plt.plot(true_pos[i,0,:], true_pos[i,1,:], color=color[ii], ls='--')
+    # 	plt.scatter(input_data[i,0,:], input_data[i,1,:], s=50, marker='o', color=color[ii])
+
+    for i in range(len(n_components)):
+        print(i, pca_list[i].mean.mean(), pca_list[i].std.std())
+        plt.figure(i)
+        for j in range(n_components[i]):
+            plt.plot(s[1:-1], pca_list[i].components[:, j])
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
+    # main(sys.argv[1])
