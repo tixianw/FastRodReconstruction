@@ -120,6 +120,8 @@ def main():
 		for j in range(3):
 			axes[0][j].plot(s[1:-1], strain_rand[0][i, j, :])
 			axes[1][j].plot(s_mean, strain_rand[1][i, j, :])
+			axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
+			axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
 	plt.show()
 
