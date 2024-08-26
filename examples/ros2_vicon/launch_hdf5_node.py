@@ -135,6 +135,12 @@ class HDF5WriterNode(LoggerNode):
     default="reconstruction.h5",
     help="Set the file name of the HDF5 file",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose output",
+)
 def main(
     log_level: str,
     number_of_markers: int,
@@ -142,6 +148,7 @@ def main(
     writing_rate: float,
     chunk_size: int,
     file_name: str,
+    verbose: bool,
 ):
 
     ros2_vicon.init()
@@ -187,7 +194,7 @@ def main(
         file_name=file_name,
         chunk_size=chunk_size,
         writing_rate=writing_rate,
-        verbose=True,
+        verbose=verbose,
     )
     node = HDF5WriterNode(
         subscriptions_info=subscriptions_info,
