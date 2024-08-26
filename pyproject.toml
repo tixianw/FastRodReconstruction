@@ -29,6 +29,7 @@ packages = [
     { include = "ros2_vicon", from = "src" },
     { include = "reconstruction", from = "src" },
     { include = "neural_data_smoothing3D", from = "src" },
+    { include = "neural_data_smoothing3D_full", from = "src" },
     { include = "assets", from = "src" },
 ]
 
