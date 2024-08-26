@@ -1,5 +1,6 @@
 from typing import Dict
 
+import time
 from dataclasses import dataclass
 
 import click
@@ -69,8 +70,8 @@ class HDF5WriterNode(LoggerNode):
 
     def subscriber_callback_closure(self, key: str) -> callable:
         def subscriber_callback(msg):
-            self.log_debug(f"{self.__subscribers[key]}")
             self.__subscribers[key].receive(msg)
+            self.log_debug(f"{self.__subscribers[key]}")
             self.writer.record(key, msg)
 
         return subscriber_callback
@@ -120,7 +121,7 @@ class HDF5WriterNode(LoggerNode):
 @click.option(
     "--chunk-size",
     type=int,
-    default=10,
+    default=100,
     help="Set the chunk size",
     callback=lambda ctx, param, value: (
         value if value >= 1 else ctx.fail("Must be greater than or equal to 1")
@@ -129,7 +130,7 @@ class HDF5WriterNode(LoggerNode):
 @click.option(
     "--file-name",
     type=str,
-    default="reconstructin.h5",
+    default="reconstruction.h5",
     help="Set the file name of the HDF5 file",
 )
 def main(

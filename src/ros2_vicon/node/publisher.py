@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from dataclasses import dataclass
 
@@ -8,6 +8,9 @@ from ros2_vicon.message.array import NDArrayMessage
 from ros2_vicon.message.pose import PoseMessage
 from ros2_vicon.node import LoggerNode
 from ros2_vicon.qos import QoSProfile
+
+# from rosidl_runtime_py import set_message_fields, get_message_fields
+# from rosidl_runtime_py.utilities import get_message
 
 
 @dataclass

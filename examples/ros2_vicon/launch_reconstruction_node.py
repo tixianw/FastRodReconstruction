@@ -138,8 +138,11 @@ class ReconstructionNode(LoggerNode):
     def timer_callback(self) -> bool:
         if not self.new_message:
             return False
-        self.log_info(f"time: {self.timer.time} [sec] -> publishing...")
+
+        self.log_debug(f"Reconstructing...")
         self.reconstruct()
+        self.log_info(f"Reconstructing... Done")
+
         self.publish("pose", self.input_data[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
@@ -166,7 +169,11 @@ class ReconstructionNode(LoggerNode):
     def reconstruct(self):
         self.model(self.create_input_data())
 
-    def publish(self, publisher_key: str, data: np.ndarray) -> None:
+    def publish(
+        self,
+        publisher_key: str,
+        data: np.ndarray,
+    ) -> None:
         self.__publishers[publisher_key].release(data)
         self.log_debug(f"{self.__publishers[publisher_key]}")
 

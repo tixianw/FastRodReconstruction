@@ -27,6 +27,8 @@ class Timer:
 
     def __post_init__(self):
 
+        self.__init_time = self.get_clock()
+        self.__time = 0.0
         if self.publish_flag:
             self.__publisher = self.node.create_publisher(
                 msg_type=Float32,
@@ -34,10 +36,8 @@ class Timer:
                 qos_profile=self.qos_profile,
             )
             callback = self.__callback_with_publish
-            self.__init_time = self.get_clock()
-            self.__time = 0.0
         else:
-            callback = self.callback
+            callback = self.__callback_without_publish
 
         self.__timer = self.node.create_timer(
             timer_period_sec=self.timer_period_sec,
@@ -49,6 +49,7 @@ class Timer:
         """
         Get the current time.
         """
+        self.__time = self.get_clock() - self.__init_time
         return self.__time
 
     def __str__(self) -> str:
@@ -62,12 +63,12 @@ class Timer:
                 f"timer={self.__timer}, \n"
                 f"publisher={self.__publisher}, \n"
                 f"topic={self.topic}, \n"
-                f"time={self.__time})"
+                f"time={self.time})"
             )
         else:
             info = (
                 f"Timer(timer_period_sec={self.timer_period_sec}, "
-                f"timer={self.__timer})"
+                f"timer={self.time})"
             )
         return info
 
@@ -76,11 +77,16 @@ class Timer:
         Callback function with publishing the current time.
         """
         if self.callback():
-            self.__time = self.get_clock() - self.__init_time
-            self.__publisher.publish(Float32(data=self.__time))
-            self.node.get_logger().debug(f"{self}")
+            self.__publisher.publish(Float32(data=self.time))
+            self.node.log_debug(f"{self}")
             return True
         return False
+
+    def __callback_without_publish(self) -> bool:
+        """
+        Callback function without publishing the current time.
+        """
+        return self.callback()
 
     def get_clock(self) -> float:
         """

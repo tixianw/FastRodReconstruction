@@ -21,7 +21,7 @@ class HDF5Writer(Thread):
     file_name: str
     messages: Dict[str, NDArrayMessage]
     node: LoggerNode
-    chunk_size: int = 1000
+    chunk_size: int = 100
     writer_period_sec: float = 0.1
 
     def __post_init__(self):
@@ -38,21 +38,33 @@ class HDF5Writer(Thread):
     def record(self, key: str, msg) -> None:
         self._buffer[key].append(self.messages[key].from_message(msg).to_hdf5())
 
-    # BUG: no idea what this is doing
     def write_to_hdf5(self, f: h5py.File) -> None:
-        for key, dset in f.items():
-            dset.resize(dset.shape[0] + len(self._buffer[key]), axis=0)
-            dset[-len(self._buffer[key]) :] = np.asarray(self._buffer[key])
-            self._buffer[key].clear
+        for key in self._buffer.keys():
+            chunk_size = min(len(self._buffer[key]), self.chunk_size)
+            self.node.log_debug(
+                f"Writing chunk with size {chunk_size} to HDF5 file with key {key}..."
+            )
+            data_chunk = [
+                self._buffer[key].popleft() for _ in range(chunk_size)
+            ]
 
-    # TODO: bad implementation
-    def is_filled(self):
-        return len(self._buffer["position"]) >= self.chunk_size
+            dset = f[key]
+            dset.resize(dset.shape[0] + chunk_size, axis=0)
+            dset[-chunk_size:] = np.asarray(data_chunk)
+
+    def is_filled(self) -> bool:
+        return (
+            min([len(self._buffer[key]) for key in self._buffer.keys()])
+            >= self.chunk_size
+        )
+
+    def is_empty(self) -> bool:
+        return all([len(self._buffer[key]) == 0 for key in self._buffer.keys()])
 
     def run(self):
         with h5py.File(self.file_name, "w") as f:
             for key, message in self.messages.items():
-                f.create_dataset(
+                f.require_dataset(
                     name=key,
                     shape=(0,) + message.shape,
                     dtype=np.float32,
@@ -61,10 +73,12 @@ class HDF5Writer(Thread):
                 )
 
             while self.write_file_event.is_set():
-                self.node.log_debug("Writing to HDF5 file...")
                 if self.is_filled():
                     self.write_to_hdf5(f)
                 time.sleep(self.writer_period_sec)
+
+            if self.is_empty():
+                self.write_to_hdf5(f)
 
     def stop(self):
         self.write_file_event.clear()

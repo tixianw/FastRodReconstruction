@@ -101,6 +101,10 @@ class NDArrayMessage:
     def to_hdf5(self) -> np.ndarray:
         return self.data
 
+    def add_info(self, key: str, value: str) -> "NDArrayMessage":
+        setattr(self.__message, key, value)
+        return self
+
     def __str__(self) -> str:
         """
         Return the string information of the NDArrayMessage
