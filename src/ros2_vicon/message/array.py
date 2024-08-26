@@ -62,6 +62,7 @@ class NDArrayMessage:
             )
             self.__message.layout.dim.append(dim)
         self.__message.layout.data_offset = 0
+        self.data = np.empty(self.shape)
 
     def from_topic(self, msg: Float32MultiArray) -> bool:
         try:

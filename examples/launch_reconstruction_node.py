@@ -96,7 +96,8 @@ class ReconstructionNode(LoggerNode):
             ),
         }
 
-        # Create a timer for publishing at reconstruction_rate Hz
+        # Initialize timer
+        self.log_info("- Timer initializing...")
         self.timer = Timer(
             timer_period_sec=1 / self.reconstruction_rate,
             callback=self.timer_callback,
@@ -104,6 +105,8 @@ class ReconstructionNode(LoggerNode):
             publish_flag=True,
             qos_profile=100,
         )
+
+        self.ready()
 
     def init_input_data(self) -> None:
         self.number_of_markers = len(self.__subscribers)

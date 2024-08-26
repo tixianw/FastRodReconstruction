@@ -1,4 +1,3 @@
-from .file.writer import HDF5Writer
 from .node.publisher import NDArrayPublisher, PosePublisher
 from .node.subscriber import (
     NDArraySubscriber,
@@ -6,6 +5,7 @@ from .node.subscriber import (
     ViconPoseSubscriber,
 )
 from .node.timer import Timer
+from .node.writer import HDF5Writer
 
 try:
     import rclpy

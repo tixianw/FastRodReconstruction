@@ -1,14 +1,14 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Union
 
 from dataclasses import dataclass
 
 from ros2_vicon.message.array import NDArrayMessage
 from ros2_vicon.message.pose import PoseMessage
 from ros2_vicon.message.vicon import ViconPoseMessage
+from ros2_vicon.node import LoggerNode
+from ros2_vicon.qos import QoSProfile
 
 try:
-    import rclpy
-    from rclpy.node import Node
     from std_msgs.msg import Float32MultiArray  # For subscribing numpy array
     from vicon_receiver.msg import Position as ViconPose
 except ModuleNotFoundError:
@@ -28,15 +28,15 @@ class ViconPoseSubscriber:
 
     topic: str
     callback: Callable[[ViconPose], None]
-    qos_profile: Union[rclpy.qos.QoSProfile, int]
-    node: Optional[Node] = None
+    qos_profile: Union[QoSProfile, int]
+    node: LoggerNode
 
     def __post_init__(self):
         """
         Initialize the ViconPoseSubscriber object.
         """
         self.message = ViconPoseMessage()
-        self.__subscription = self.node.create_subscription(
+        self.__subscriber = self.node.create_subscriber(
             msg_type=self.message.TYPE,
             topic=self.topic,
             callback=self.callback,
@@ -56,7 +56,7 @@ class ViconPoseSubscriber:
         return (
             f"ViconPoseSubscriber(topic={self.topic}, "
             f"message={self.message}, "
-            f"subscription={self.__subscription})"
+            f"subscriber={self.__subscriber})"
         )
 
 
@@ -69,14 +69,14 @@ class NDArraySubscriber:
     message: NDArrayMessage
     topic: str
     callback: Callable[[Float32MultiArray], None]
-    qos_profile: Union[rclpy.qos.QoSProfile, int]
-    node: Optional[Node] = None
+    qos_profile: Union[QoSProfile, int]
+    node: LoggerNode
 
     def __post_init__(self):
         """
         Initialize the NDArraySubscriber object.
         """
-        self.__subscription = self.node.create_subscription(
+        self.__subscriber = self.node.create_subscriber(
             msg_type=self.message.TYPE,
             topic=self.topic,
             callback=self.callback,
@@ -96,7 +96,7 @@ class NDArraySubscriber:
         return (
             f"NDArraySubscriber(topic={self.topic}, "
             f"message={self.message}, "
-            f"subscription={self.__subscription})"
+            f"subscriber={self.__subscriber})"
         )
 
 
@@ -109,14 +109,14 @@ class PoseSubscriber:
     message: PoseMessage
     topic: str
     callback: Callable[[Float32MultiArray], None]
-    qos_profile: Union[rclpy.qos.QoSProfile, int]
-    node: Optional[Node] = None
+    qos_profile: Union[QoSProfile, int]
+    node: LoggerNode
 
     def __post_init__(self):
         """
         Initialize the PoseSubscriber object.
         """
-        self.__subscription = self.node.create_subscription(
+        self.__subscriber = self.node.create_subscriber(
             msg_type=self.message.TYPE,
             topic=self.topic,
             callback=self.callback,
@@ -136,5 +136,5 @@ class PoseSubscriber:
         return (
             f"PoseSubscriber(topic={self.topic}, "
             f"message={self.message}, "
-            f"subscription={self.__subscription})"
+            f"subscriber={self.__subscriber})"
         )

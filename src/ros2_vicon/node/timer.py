@@ -2,9 +2,10 @@ from typing import Union
 
 from dataclasses import dataclass
 
+from ros2_vicon.node import LoggerNode
+from ros2_vicon.qos import QoSProfile
+
 try:
-    import rclpy
-    from rclpy.node import Node
     from std_msgs.msg import Float32
 except ModuleNotFoundError:
     print(
@@ -19,10 +20,10 @@ except ModuleNotFoundError:
 class Timer:
     timer_period_sec: float
     callback: callable
-    node: Node
+    node: LoggerNode
     topic: str = "/time"
     publish_flag: bool = False
-    qos_profile: Union[rclpy.qos.QoSProfile, int] = 1
+    qos_profile: Union[QoSProfile, int] = 1
 
     def __post_init__(self):
 
@@ -59,6 +60,7 @@ class Timer:
             info = (
                 f"Timer(timer_period_sec={self.timer_period_sec}, \n"
                 f"timer={self.__timer}, \n"
+                f"publisher={self.__publisher}, \n"
                 f"topic={self.topic}, \n"
                 f"time={self.__time})"
             )
