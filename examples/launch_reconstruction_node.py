@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import click
 import numpy as np
 
+import ros2_vicon
 from neural_data_smoothing3D import pos_dir_to_input
 from reconstruction import ReconstructionModel, ReconstructionResult
 from ros2_vicon import (
@@ -13,17 +14,7 @@ from ros2_vicon import (
     Timer,
     ViconPoseSubscriber,
 )
-
-try:
-    import rclpy
-    from rclpy.node import Node
-except ModuleNotFoundError:
-    print(
-        "Could not import ROS2 modules. Make sure to source ROS2 workspace first."
-    )
-    import sys
-
-    sys.exit(1)
+from ros2_vicon.node import LoggerNode
 
 
 @dataclass
@@ -32,7 +23,7 @@ class ReconstructionModelResource:
     model_file_name: Optional[str] = None
 
 
-class ReconstructionNode(Node):
+class ReconstructionNode(LoggerNode):
     def __init__(
         self,
         subscription_topics: Tuple[str],
@@ -40,15 +31,16 @@ class ReconstructionNode(Node):
         model_resource: Optional[ReconstructionModelResource] = None,
         log_level: str = "info",
     ):
-        super().__init__("reconstruction_node")
-        self.set_logger_level(log_level)
-        self.get_logger().info("Reconstruction node initializing...")
+        super().__init__(
+            node_name="reconstruction_node",
+            log_level=log_level,
+        )
 
         self.subscription_topics = subscription_topics
         self.reconstruction_rate = reconstruction_rate
 
         # Initialize subscribers
-        self.get_logger().info("- Subcribers initializing...")
+        self.log_info("- Subcribers initializing...")
         self.__subscribers: List[ViconPoseSubscriber] = []
         for i, topic in enumerate(self.subscription_topics):
             subscriber = ViconPoseSubscriber(
@@ -61,7 +53,7 @@ class ReconstructionNode(Node):
         self.init_input_data()
 
         # Initialize reconstruction model
-        self.get_logger().info("- Reconstruction model initializing...")
+        self.log_info("- Reconstruction model initializing...")
         self.model = (
             ReconstructionModel(
                 data_file_name=model_resource.data_file_name,
@@ -72,7 +64,7 @@ class ReconstructionNode(Node):
         )
 
         # Initialize publishers
-        self.get_logger().info("- Publishers initializing...")
+        self.log_info("- Publishers initializing...")
         self.__publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
             "pose": PosePublisher(
                 topic="/vicon/pose",
@@ -118,21 +110,7 @@ class ReconstructionNode(Node):
         self.input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
         self.input_data[0, 3, 3, :] = 1.0
         self.input_data[0, :3, :3, :] = np.eye(3)
-        self.new_data = False
-
-    def set_logger_level(self, log_level: str) -> None:
-        level_map = {
-            "debug": rclpy.logging.LoggingSeverity.DEBUG,
-            "info": rclpy.logging.LoggingSeverity.INFO,
-            "warn": rclpy.logging.LoggingSeverity.WARN,
-            "error": rclpy.logging.LoggingSeverity.ERROR,
-            "fatal": rclpy.logging.LoggingSeverity.FATAL,
-        }
-        assert (
-            log_level.lower() in level_map.keys()
-        ), f"Invalid log level: {log_level}"
-        level = level_map[log_level.lower()]
-        self.get_logger().set_level(level)
+        self.new_message = False
 
     @property
     def result(self) -> ReconstructionResult:
@@ -140,32 +118,30 @@ class ReconstructionNode(Node):
 
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
-            self.new_data = self.__subscribers[i].receive(msg)
-            self.get_logger().debug(f"{self.__subscribers[i]}")
+            self.new_message = self.__subscribers[i].receive(msg)
+            self.log_debug(f"{self.__subscribers[i]}")
 
-            # self.get_logger().debug(f'{msg.frame_number}')
-            # self.get_logger().debug(f'  {msg.x_trans}')
-            # self.get_logger().debug(f'  {msg.y_trans}')
-            # self.get_logger().debug(f'  {msg.z_trans}')
-            # self.get_logger().debug(f'  {msg.x_rot}')
-            # self.get_logger().debug(f'  {msg.y_rot}')
-            # self.get_logger().debug(f'  {msg.z_rot}')
-            # self.get_logger().debug(f'  {msg.w}')
+            # self.log_debug(f'{msg.frame_number}')
+            # self.log_debug(f'  {msg.x_trans}')
+            # self.log_debug(f'  {msg.y_trans}')
+            # self.log_debug(f'  {msg.z_trans}')
+            # self.log_debug(f'  {msg.x_rot}')
+            # self.log_debug(f'  {msg.y_rot}')
+            # self.log_debug(f'  {msg.z_rot}')
+            # self.log_debug(f'  {msg.w}')
 
         return subscriber_callback
 
     def timer_callback(self) -> bool:
-        if not self.new_data:
+        if not self.new_message:
             return False
-        self.get_logger().info(
-            f"time: {self.timer.time} [sec] -> publishing..."
-        )
+        self.log_info(f"time: {self.timer.time} [sec] -> publishing...")
         self.reconstruct()
         self.publish("pose", self.input_data[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
         self.publish("kappa", self.result.kappa)
-        self.new_data = False
+        self.new_message = False
         return True
 
     def create_input_data(self) -> np.ndarray:
@@ -189,7 +165,7 @@ class ReconstructionNode(Node):
 
     def publish(self, publisher_key: str, data: np.ndarray) -> None:
         self.__publishers[publisher_key].release(data)
-        self.get_logger().debug(f"{self.__publishers[publisher_key]}")
+        self.log_debug(f"{self.__publishers[publisher_key]}")
 
 
 def set_subsciption_topics(source: str):
@@ -232,19 +208,17 @@ def set_subsciption_topics(source: str):
     help="Set the source of the subscriber",
 )
 def main(log_level: str, source: str):
-    rclpy.init()
+    ros2_vicon.init()
+
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source),
         log_level=log_level,
     )
     try:
-        rclpy.spin(node)
+        node.start()
     except KeyboardInterrupt:
-        # Destroy the node explicitly
-        # (optional - otherwise it will be done automatically
-        # when the garbage collector destroys the node object)
-        node.destroy_node()
-        rclpy.shutdown()
+        node.stop()
+        ros2_vicon.shutdown()
 
 
 if __name__ == "__main__":

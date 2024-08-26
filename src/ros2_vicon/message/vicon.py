@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -45,13 +47,13 @@ class ViconPoseMessage:
         """
         return self.pose[:3, :3]
 
-    def from_vicon(self, msg: ViconPose) -> bool:
+    def from_topic(self, msg: ViconPose) -> bool:
         """
         Read the Vicon pose message data.
         """
         try:
             self.quaternion = np.array([msg.x_rot, msg.y_rot, msg.z_rot, msg.w])
-        except ValueError as e:
+        except ValueError:
             return False
         self.pose[:3, 3] = np.array([msg.x_trans, msg.y_trans, msg.z_trans])
         self.pose[:3, :3] = Rotation.from_quat(self.quaternion).as_matrix()

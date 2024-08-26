@@ -63,6 +63,13 @@ class NDArrayMessage:
             self.__message.layout.dim.append(dim)
         self.__message.layout.data_offset = 0
 
+    def from_topic(self, msg: Float32MultiArray) -> bool:
+        try:
+            self.from_message(msg)
+        except AssertionError:
+            return False
+        return True
+
     def from_numpy_ndarray(self, data: np.ndarray) -> "NDArrayMessage":
         assert (
             data.shape == self.shape
@@ -73,6 +80,25 @@ class NDArrayMessage:
 
     def to_message(self) -> Float32MultiArray:
         return self.__message
+
+    def from_message(self, msg: Float32MultiArray) -> "NDArrayMessage":
+        shape = tuple(dim.size for dim in msg.layout.dim)
+        assert (
+            shape == self.shape
+        ), f"Shape of msg: {shape} does not align with {self.shape}"
+        axis_labels = tuple(dim.label for dim in msg.layout.dim)
+        assert (
+            axis_labels == self.axis_labels
+        ), f"Axis labels of msg: {axis_labels} does not align with {self.axis_labels}"
+        self.__message = msg
+        self.data = np.array(msg.data).reshape(self.shape)
+        return self
+
+    def to_numpy_ndarray(self) -> np.ndarray:
+        return self.data
+
+    def to_hdf5(self) -> np.ndarray:
+        return self.data
 
     def __str__(self) -> str:
         """
