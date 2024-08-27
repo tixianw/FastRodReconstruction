@@ -98,13 +98,17 @@ class ReconstructionModel:
     def remove_base_translation(
         self, marker_position: np.ndarray
     ) -> np.ndarray:
-        return marker_position - self.base_position[None, :, None]
+        updated_marker_position = (
+            marker_position - self.base_position[None, :, None]
+        )
+        return updated_marker_position
 
     def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
+        update_maker_directors = marker_directors.copy()
         rotation_matrix = self.base_directors.T @ self.fixed_base_pose[:3, :3]
         for i in range(marker_directors.shape[0]):
             for j in range(marker_directors.shape[3]):
-                marker_directors[i, :, :, j] = (
+                update_maker_directors[i, :, :, j] = (
                     marker_directors[i, :, :, j] @ rotation_matrix
                 )
-        return marker_directors
+        return update_maker_directors
