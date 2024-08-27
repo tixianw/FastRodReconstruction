@@ -8,7 +8,7 @@
 - Docker installed on your system: [ros2-vicon](https://github.com/hanson-hschang/ros2-vicon)
 - Two terminal windows available
 - Connect to the Vicon wifi if available
-- For developers, please see the `README.md` file under `src`
+- For developers, please refer to the `developer.md` file
 
 ## Step 1: Run the Vicon Client
 
@@ -51,7 +51,7 @@ Now, follow the next two steps and its corresponding instruction to install Poet
 ```
 make install-poetry
 ```
-> **Important**: If you see a message about adding additional directory to your `PATH`, make sure to follow the provided instructions to make this change.
+> **Important**: If you see a message about adding additional directory to your `PATH`, make sure to follow the provided instructions.
 
 2. Install the repository as a package:
 ```

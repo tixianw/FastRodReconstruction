@@ -2,41 +2,38 @@ from typing import Union
 
 from dataclasses import dataclass
 
-try:
-    import rclpy
-    from rclpy.node import Node
-    from std_msgs.msg import Float32
-except ModuleNotFoundError:
-    print(
-        "Could not import ROS2 modules. Make sure to source ROS2 workspace first."
-    )
-    import sys
+import numpy as np
 
-    sys.exit(1)
+from ros2_vicon.message.array import NDArrayMessage
+from ros2_vicon.node import LoggerNode
+from ros2_vicon.qos import QoSProfile
 
 
 @dataclass
 class Timer:
     timer_period_sec: float
     callback: callable
-    node: Node
+    node: LoggerNode
     topic: str = "/time"
     publish_flag: bool = False
-    qos_profile: Union[rclpy.qos.QoSProfile, int] = 1
+    qos_profile: Union[QoSProfile, int] = 1
 
     def __post_init__(self):
 
+        self.__init_time = self.get_clock()
+        self.__time = NDArrayMessage(
+            shape=(1,),
+            axis_labels=("time",),
+        )
         if self.publish_flag:
             self.__publisher = self.node.create_publisher(
-                msg_type=Float32,
+                msg_type=self.__time.TYPE,
                 topic=self.topic,
                 qos_profile=self.qos_profile,
             )
             callback = self.__callback_with_publish
-            self.__init_time = self.get_clock()
-            self.__time = 0.0
         else:
-            callback = self.callback
+            callback = self.__callback_without_publish
 
         self.__timer = self.node.create_timer(
             timer_period_sec=self.timer_period_sec,
@@ -48,7 +45,9 @@ class Timer:
         """
         Get the current time.
         """
-        return self.__time
+        return self.__time.from_numpy_ndarray(
+            data=np.array([self.get_clock() - self.__init_time])
+        ).to_numpy_ndarray()
 
     def __str__(self) -> str:
         """
@@ -59,24 +58,34 @@ class Timer:
             info = (
                 f"Timer(timer_period_sec={self.timer_period_sec}, \n"
                 f"timer={self.__timer}, \n"
+                f"publisher={self.__publisher}, \n"
                 f"topic={self.topic}, \n"
-                f"time={self.__time})"
+                f"time={self.time})"
             )
         else:
             info = (
                 f"Timer(timer_period_sec={self.timer_period_sec}, "
-                f"timer={self.__timer})"
+                f"timer={self.time})"
             )
         return info
 
-    def __callback_with_publish(self):
+    def __callback_with_publish(self) -> bool:
         """
         Callback function with publishing the current time.
         """
-        self.__time = self.get_clock() - self.__init_time
-        self.__publisher.publish(Float32(data=self.__time))
-        self.node.get_logger().debug(f"{self}")
-        self.callback()
+        if self.callback():
+            self.__publisher.publish(
+                self.__time.from_numpy_ndarray(data=self.time).to_message()
+            )
+            self.node.log_debug(f"{self}")
+            return True
+        return False
+
+    def __callback_without_publish(self) -> bool:
+        """
+        Callback function without publishing the current time.
+        """
+        return self.callback()
 
     def get_clock(self) -> float:
         """
