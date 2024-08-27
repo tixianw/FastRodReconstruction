@@ -21,6 +21,7 @@ class ReconstructionModel:
         self,
         data_file_name: Optional[str] = None,
         model_file_name: Optional[str] = None,
+        fixed_base_pose: np.ndarray = np.diag([1, -1, -1, 1]),
     ):
 
         if data_file_name:
@@ -38,6 +39,9 @@ class ReconstructionModel:
             with resources.path(ASSETS, MODEL_NAME) as path:
                 model_data = torch.load(path)
             self.model_file_name = "package_assets:" + ASSETS + "/" + MODEL_NAME
+
+        self.base_pose = fixed_base_pose.copy()
+        self.fixed_base_pose = fixed_base_pose.copy()
 
         # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
         # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
@@ -74,3 +78,33 @@ class ReconstructionModel:
         self.result.directors = director[0]
         self.result.kappa = kappa[0]
         return self.result
+
+    @property
+    def base_position(self) -> np.ndarray:
+        return self.base_pose[:3, 3]
+
+    @base_position.setter
+    def base_position(self, value: np.ndarray):
+        self.base_pose[:3, 3] = value
+
+    @property
+    def base_directors(self) -> np.ndarray:
+        return self.base_pose[:3, :3]
+
+    @base_directors.setter
+    def base_directors(self, value: np.ndarray):
+        self.base_pose[:3, :3] = value
+
+    def remove_base_translation(
+        self, marker_position: np.ndarray
+    ) -> np.ndarray:
+        return marker_position - self.base_position[None, :, None]
+
+    def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
+        rotation_matrix = self.base_directors.T @ self.fixed_base_pose[:3, :3]
+        for i in range(marker_directors.shape[0]):
+            for j in range(marker_directors.shape[3]):
+                marker_directors[i, :, :, j] = (
+                    marker_directors[i, :, :, j] @ rotation_matrix
+                )
+        return marker_directors

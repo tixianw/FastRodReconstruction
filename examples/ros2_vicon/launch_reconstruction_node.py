@@ -115,7 +115,7 @@ class ReconstructionNode(LoggerNode):
         self.input_data = np.zeros((1, 4, 4, self.number_of_markers))
         self.input_data[0, 3, 3, :] = 1.0
         for i in range(self.number_of_markers):
-            self.input_data[0, :3, :3, i] = np.eye(3)
+            self.input_data[0, :3, :3, i] = np.diag([1, -1, -1])
         self.new_message = False
 
     @property
@@ -128,13 +128,13 @@ class ReconstructionNode(LoggerNode):
             self.log_debug(f"{self.__subscribers[i]}")
 
             # self.log_debug(f'{msg.frame_number}')
-            # self.log_debug(f'  {msg.x_trans}')
-            # self.log_debug(f'  {msg.y_trans}')
-            # self.log_debug(f'  {msg.z_trans}')
-            # self.log_debug(f'  {msg.x_rot}')
-            # self.log_debug(f'  {msg.y_rot}')
-            # self.log_debug(f'  {msg.z_rot}')
-            # self.log_debug(f'  {msg.w}')
+            # self.log_debug(f'{msg.x_trans}')
+            # self.log_debug(f'{msg.y_trans}')
+            # self.log_debug(f'{msg.z_trans}')
+            # self.log_debug(f'{msg.x_rot}')
+            # self.log_debug(f'{msg.y_rot}')
+            # self.log_debug(f'{msg.z_rot}')
+            # self.log_debug(f'{msg.w}')
 
         return subscriber_callback
 
@@ -157,15 +157,17 @@ class ReconstructionNode(LoggerNode):
 
     def create_input_data(self) -> np.ndarray:
         # Create input data from the subscribers
-        base_position = self.__subscribers[0].message.position
-        base_directors = self.__subscribers[0].message.directors
+        self.model.base_position = self.__subscribers[0].message.position
+        self.model.base_directors = self.__subscribers[0].message.directors
         for i, subscriber in enumerate(self.__subscribers):
-            self.input_data[0, :3, 3, i] = subscriber.message.position
-            self.input_data[0, :3, :3, i] = subscriber.message.directors
+            self.input_data[0, :3, 3, i] = subscriber.message.position.copy()
+            self.input_data[0, :3, :3, i] = subscriber.message.directors.copy()
 
         input_data = pos_dir_to_input(
-            pos=self.input_data[:, :3, 3, 1:] - base_position[None, :, None],
-            dir=self.input_data[:, :3, :3, 1:],
+            pos=self.model.remove_base_translation(
+                self.input_data[:, :3, 3, 1:]
+            ),
+            dir=self.model.remove_base_rotation(self.input_data[:, :3, :3, 1:]),
         )
         return input_data
 
@@ -194,7 +196,7 @@ def set_subsciption_topics(source: str):
             "/vicon_mock/CrossSection_0_0/CrossSection_0_0",
             "/vicon_mock/CrossSection_0_1/CrossSection_0_1",
             "/vicon_mock/CrossSection_0_2/CrossSection_0_2",
-            "/vicon_mock/CrossSection_0_3/CrossSection_0_3",
+            # "/vicon_mock/CrossSection_0_3/CrossSection_0_3",
             # "/vicon_mock/CrossSection_0_4/CrossSection_0_4",
             # "/vicon_mock/CrossSection_0_5/CrossSection_0_5",
         )

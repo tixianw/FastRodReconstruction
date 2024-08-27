@@ -55,9 +55,13 @@ class ViconPoseMessage:
             self.quaternion = np.array([msg.x_rot, msg.y_rot, msg.z_rot, msg.w])
         except ValueError:
             return False
-        self.pose[:3, 3] = np.array([msg.x_trans, msg.y_trans, msg.z_trans])
-        self.pose[:3, :3] = Rotation.from_quat(self.quaternion).as_matrix()
-        self.frame_number = msg.frame_number
+        self.pose[:3, 3] = (
+            np.array([msg.x_trans, msg.y_trans, msg.z_trans]) / 1000
+        )  # Convert from millimeters to meters
+        self.pose[:3, :3] = Rotation.from_quat(
+            self.quaternion
+        ).as_matrix()  # Convert from quaternion to rotation matrix
+        self.frame_number: int = msg.frame_number
         return True
 
     def __str__(self) -> str:
