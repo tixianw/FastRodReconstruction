@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Union
 
+import time
 from dataclasses import dataclass
 
 import click
@@ -107,6 +108,7 @@ class ReconstructionNode(LoggerNode):
         )
 
         self.ready()
+        self.time = time.time()
 
     def init_input_data(self) -> None:
         self.number_of_markers = len(self.__subscribers)
@@ -139,11 +141,13 @@ class ReconstructionNode(LoggerNode):
     def timer_callback(self) -> bool:
         if not self.new_message:
             return False
-
+        new_time = time.time()
         self.log_debug(f"Reconstructing...")
         self.reconstruct()
-        self.log_info(f"Reconstructing... Done")
-
+        self.log_info(
+            f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
+        )
+        self.time = new_time
         self.publish("pose", self.input_data[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
@@ -183,7 +187,7 @@ def set_subsciption_topics(source: str):
             "/vicon/br2_seg_1/br2_seg_1",
             "/vicon/br2_seg_2/br2_seg_2",
             "/vicon/br2_seg_3/br2_seg_3",
-            "/vicon/br2_seg_4/br2_seg_4",
+            # "/vicon/br2_seg_4/br2_seg_4",
         )
     if source.lower() == "vicon_mock":
         subscription_topics = (
