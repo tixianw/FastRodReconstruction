@@ -68,7 +68,7 @@ class ReconstructionNode(LoggerNode):
         self.__publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
             "pose": PosePublisher(
                 topic="/vicon/pose",
-                length=self.number_of_markers - 1,
+                length=self.number_of_markers,
                 label="element",
                 qos_profile=100,
                 node=self,
@@ -110,9 +110,10 @@ class ReconstructionNode(LoggerNode):
 
     def init_input_data(self) -> None:
         self.number_of_markers = len(self.__subscribers)
-        self.input_data = np.zeros((1, 4, 4, self.number_of_markers - 1))
+        self.input_data = np.zeros((1, 4, 4, self.number_of_markers))
         self.input_data[0, 3, 3, :] = 1.0
-        self.input_data[0, :3, :3, :] = np.eye(3)
+        for i in range(self.number_of_markers):
+            self.input_data[0, :3, :3, i] = np.eye(3)
         self.new_message = False
 
     @property
@@ -154,15 +155,13 @@ class ReconstructionNode(LoggerNode):
         # Create input data from the subscribers
         base_position = self.__subscribers[0].message.position
         base_directors = self.__subscribers[0].message.directors
-        for i, subscriber in enumerate(self.__subscribers[1:]):
-            self.input_data[0, :3, 3, i] = (
-                subscriber.message.position - base_position
-            )
+        for i, subscriber in enumerate(self.__subscribers):
+            self.input_data[0, :3, 3, i] = subscriber.message.position
             self.input_data[0, :3, :3, i] = subscriber.message.directors
 
         input_data = pos_dir_to_input(
-            pos=self.input_data[:, :3, 3, :],
-            dir=self.input_data[:, :3, :3, :],
+            pos=self.input_data[:, :3, 3, 1:] - base_position,
+            dir=self.input_data[:, :3, :3, 1:],
         )
         return input_data
 

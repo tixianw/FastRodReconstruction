@@ -168,28 +168,38 @@ def main(
         "pose": SubscriptionInfo(
             topic="/vicon/pose",
             message=PoseMessage(
-                shape=(number_of_markers - 1,),
+                shape=(number_of_markers,),
                 axis_labels=("element",),
             ),
         ),
         "position": SubscriptionInfo(
             topic="/reconstruction/position",
             message=NDArrayMessage(
-                shape=(3, number_of_elements + 1),
+                shape=(
+                    3,
+                    number_of_elements + 1,
+                ),
                 axis_labels=("position", "element"),
             ),
         ),
         "directors": SubscriptionInfo(
             topic="/reconstruction/directors",
             message=NDArrayMessage(
-                shape=(3, 3, number_of_elements),
+                shape=(
+                    3,
+                    3,
+                    number_of_elements,
+                ),
                 axis_labels=("directors", "director_index", "element"),
             ),
         ),
         "kappa": SubscriptionInfo(
             topic="/reconstruction/kappa",
             message=NDArrayMessage(
-                shape=(3, number_of_elements - 1),
+                shape=(
+                    3,
+                    number_of_elements - 1,
+                ),
                 axis_labels=("kappa", "element"),
             ),
         ),
