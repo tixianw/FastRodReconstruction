@@ -165,9 +165,11 @@ class ReconstructionNode(LoggerNode):
 
         input_data = pos_dir_to_input(
             pos=self.model.remove_base_translation(
-                self.input_data[:, :3, 3, 1:]
+                self.input_data[:, :3, 3, 1:],
             ),
-            dir=self.model.remove_base_rotation(self.input_data[:, :3, :3, 1:]),
+            dir=self.model.remove_base_rotation(
+                self.input_data[:, :3, :3, 1:],
+            ),
         )
         return input_data
 
