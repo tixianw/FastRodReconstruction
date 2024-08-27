@@ -164,7 +164,7 @@ class ReconstructionNode(LoggerNode):
             self.input_data[0, :3, :3, i] = subscriber.message.directors
 
         input_data = pos_dir_to_input(
-            pos=self.input_data[:, :3, 3, 1:] - base_position,
+            pos=self.input_data[:, :3, 3, 1:] - base_position[None, :, None],
             dir=self.input_data[:, :3, :3, 1:],
         )
         return input_data
