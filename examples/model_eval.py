@@ -25,7 +25,7 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = "assets" # 'Data' # 
+folder_name = 'Data' # "assets" # 
 test_data_name = "training_data_set_br2.npy"
 model_name = 'data_smoothing_model_br2_test.pt'
 if not os.path.exists(folder_name):
@@ -139,9 +139,11 @@ for ii in range(len(idx_list)):
         marker="o",
         color=color[ii],
     )
-    ax.set_xlim(-L, 0)
+    ax.set_xlim(0, L)
     ax.set_ylim(-L, 0)
     ax.set_zlim(-L, 0)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
     ax.set_aspect("equal")
     for j in range(3):
         axes[j].plot(s[1:-1], kappa_output[0, j, :], color=color[ii], ls="-")

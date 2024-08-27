@@ -21,6 +21,7 @@ def main():
 
     n_elem = data["model"]["n_elem"]
     L = data["model"]["L"]
+    print('rest length:', L)
     radius = data["model"]["radius"]
     s = data["model"]["s"]
     dl = data["model"]["dl"]
