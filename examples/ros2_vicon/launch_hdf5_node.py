@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Union
 
 import time
 from dataclasses import dataclass
@@ -83,6 +83,16 @@ class HDF5WriterNode(LoggerNode):
         super().stop()
 
 
+def not_smaller_then_one_constraint(
+    ctx: click.Context,
+    param: click.Option,
+    value: Union[float, int],
+) -> float:
+    if value < 1:
+        raise click.BadParameter("Must be greater than or equal to 1")
+    return value
+
+
 @click.command()
 @click.option(
     "--log-level",
@@ -107,27 +117,21 @@ class HDF5WriterNode(LoggerNode):
     type=int,
     default=100,
     help="Set the number of elements",
-    callback=lambda ctx, param, value: (
-        value if value >= 1 else ctx.fail("Must be greater than or equal to 1")
-    ),
+    callback=not_smaller_then_one_constraint,
 )
 @click.option(
     "--writing-rate",
     type=float,
     default=10,
     help="Set the writing rate",
-    callback=lambda ctx, param, value: (
-        value if value >= 1 else ctx.fail("Must be greater than or equal to 1")
-    ),
+    callback=not_smaller_then_one_constraint,
 )
 @click.option(
     "--chunk-size",
     type=int,
     default=100,
     help="Set the chunk size",
-    callback=lambda ctx, param, value: (
-        value if value >= 1 else ctx.fail("Must be greater than or equal to 1")
-    ),
+    callback=not_smaller_then_one_constraint,
 )
 @click.option(
     "--file-name",
@@ -138,7 +142,7 @@ class HDF5WriterNode(LoggerNode):
 @click.option(
     "--verbose",
     is_flag=True,
-    default=False,
+    default=True,
     help="Enable verbose output",
 )
 def main(

@@ -61,7 +61,7 @@ class HDF5Writer(Thread):
 
         if len(list(set(list(chunk_size_dict.values())))) == 1:
             self.log_verbose(
-                f"Writing chunk to HDF5 file... with same chunk size {chunk_size}. Done!"
+                f"Writing chunk to HDF5 file... with same chunk size: {chunk_size}. Done!"
             )
         else:
             self.log_verbose(
@@ -77,6 +77,7 @@ class HDF5Writer(Thread):
         )
 
     def is_empty(self) -> bool:
+        self.node.log_debug("Checking if buffer is empty...")
         return all([len(self._buffer[key]) == 0 for key in self._buffer.keys()])
 
     def run(self):
@@ -95,9 +96,10 @@ class HDF5Writer(Thread):
                     self.write_to_hdf5(f)
                 time.sleep(self.writer_period_sec)
 
-            if self.is_empty():
+            if not self.is_empty():
                 self.write_to_hdf5(f)
 
     def stop(self):
         self.writer_event.clear()
+        time.sleep(self.writer_period_sec)
         self.join()
