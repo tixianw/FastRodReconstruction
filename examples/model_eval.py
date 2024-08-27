@@ -25,7 +25,7 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = "assets" # 'Data' # 
+folder_name = 'Data' # "assets" # 
 test_data_name = "training_data_set_br2.npy"
 model_name = 'data_smoothing_model_br2_test.pt'
 if not os.path.exists(folder_name):

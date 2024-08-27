@@ -16,7 +16,7 @@ def main():
         data = np.load(path, allow_pickle="TRUE").item()
 
     ## data point setup
-    n_data_pts = 3  # 5 # exlude the initial point at base
+    n_data_pts = 2  # 5 # exlude the initial point at base
     idx_data_pts = np.array(
         [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
     )
@@ -30,7 +30,7 @@ def main():
     input_data = pos_dir_to_input(input_pos, input_dir)
     # print(position.shape, director.shape, input_pos.shape, input_data.shape)
 
-    flag_save = 0
+    flag_save = 1
 
     if flag_save:
         print("updating data...")
