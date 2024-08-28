@@ -7,12 +7,12 @@ from importlib import resources
 
 import numpy as np
 
-from assets import ASSETS, FILE_NAME
+from assets import ASSETS, FILE_NAME_BR2
 from neural_data_smoothing3D import pos_dir_to_input
 
 
 def main():
-    with resources.path(ASSETS, FILE_NAME) as path:
+    with resources.path(ASSETS, FILE_NAME_BR2) as path:
         data = np.load(path, allow_pickle="TRUE").item()
 
     ## data point setup
@@ -39,7 +39,7 @@ def main():
         data["idx_data_pts"] = idx_data_pts
         data["input_data"] = input_data
 
-        with resources.path(ASSETS, FILE_NAME) as path:
+        with resources.path(ASSETS, FILE_NAME_BR2) as path:
             np.save(path, data)
 
 

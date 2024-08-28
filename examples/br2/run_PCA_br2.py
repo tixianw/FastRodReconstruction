@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.linalg import eigh  # eig
 
-from assets import ASSETS, FILE_NAME
+from assets import ASSETS, FILE_NAME_BR2
 from neural_data_smoothing3D import PCA, pos_dir_to_input
 
 color = ["C" + str(i) for i in range(10)]
 
 
 def main():
-    with resources.path(ASSETS, FILE_NAME) as path:
+    with resources.path(ASSETS, FILE_NAME_BR2) as path:
         data = np.load(path, allow_pickle="TRUE").item()
 
     n_elem = data["model"]["n_elem"]
@@ -67,7 +67,7 @@ def main():
         data["idx_data_pts"] = idx_data_pts
         data["input_data"] = input_data
         data["pca"] = pca_list
-        np.save(folder_name + '/' + FILE_NAME, data)
+        np.save(folder_name + '/' + FILE_NAME_BR2, data)
 
     # np.random.seed(2024)
     # idx_list = np.random.randint(len(true_kappa), size=10) # [i*10 for i in range(10)]

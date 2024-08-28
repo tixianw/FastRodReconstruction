@@ -9,14 +9,18 @@ from importlib import resources
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+# from time import perf_counter
 
-from assets import ASSETS, FILE_NAME, MODEL_NAME
-from neural_data_smoothing3D import (
+from assets import ASSETS
+from assets import FILE_NAME_OCTOPUS as FILE_NAME
+from assets import MODEL_NAME_OCTOPUS as MODEL_NAME
+from neural_data_smoothing3D_full import (
     CurvatureSmoothing3DNet,
     coeff2strain,
     strain2posdir,
     tensor2numpyVec,
 )
+from neural_data_smoothing3D_full.utils import _aver
 
 color = ["C" + str(i) for i in range(10)]
 np.random.seed(2024)
@@ -25,9 +29,9 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = 'Data' # "assets" # 
-test_data_name = "training_data_set_br2.npy"
-model_name = 'data_smoothing_model_br2_test.pt'
+folder_name = "assets" # 'Data' # 
+test_data_name = "training_data_set_octopus.npy"
+model_name = 'data_smoothing_model_octopus_test.pt'
 if not os.path.exists(folder_name):
     with resources.path(ASSETS, MODEL_NAME) as path:
         model = torch.load(path)
@@ -47,6 +51,7 @@ n_elem = data["model"]["n_elem"]
 L = data["model"]["L"]
 radius = data["model"]["radius"]
 s = data["model"]["s"]
+s_mean = _aver(s)
 dl = data["model"]["dl"]
 nominal_shear = data["model"]["nominal_shear"]
 idx_data_pts = data["idx_data_pts"]
@@ -57,6 +62,7 @@ input_data = test_data["input_data"]
 true_pos = test_data["true_pos"]
 true_dir = test_data["true_dir"]
 true_kappa = test_data["true_kappa"]
+true_shear = test_data['true_shear']
 
 ## load trained model
 num_epochs = model["num_epochs"]
@@ -64,6 +70,7 @@ batch_size = model["batch_size"]
 tensor_constants = model["tensor_constants"]
 input_size = tensor_constants.input_size
 output_size = tensor_constants.output_size
+print("input_size:", input_size, "output_size:", output_size)
 net = CurvatureSmoothing3DNet(input_size, output_size)
 net.load_state_dict(model["model"])
 losses, vlosses, test_loss = model["losses"]
@@ -74,8 +81,9 @@ print(
     num_epochs,
     "batch size:",
     batch_size,
-    "regularizations:",
+    "regularizations: chi_r=",
     tensor_constants.chi_r,
+    ', chi_d=',
     tensor_constants.chi_d,
 )
 print("min_loss:", min(losses))
@@ -90,33 +98,32 @@ plt.xlabel("epochs") #  * iterations
 plt.ylabel("losses")
 plt.legend()
 
-# print(input_data.shape, true_kappa.shape, true_pos.shape)
+# print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
 input_tensor = torch.from_numpy(input_data).float()
 idx_list = np.random.randint(
     len(input_data), size=10
 )  # [i*10 for i in range(6)]
 
 # net.eval()
-# print('start...')
+# print('start counting...')
 # start = perf_counter()
 # for i in range(len(input_data)):
 # 	output = net(input_tensor[i])
-# 	kappa_output = coeff2strain(tensor2numpyVec(output), pca)
-# 	[position_output, director_output] = strain2posdir(kappa_output, dl)
+# 	strain_output = coeff2strain(tensor2numpyVec(output), pca)
+# 	[position_output, director_output] = strain2posdir(strain_output, dl)
 # stop = perf_counter()
 # print((stop-start), 1e5/(stop-start))
+# quit()
 
 net.eval()
 fig = plt.figure(1)
 ax = fig.add_subplot(111, projection="3d")
-fig2, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
+fig2, axes = plt.subplots(ncols=3, nrows=2, sharex=True, figsize=(16, 5))
 for ii in range(len(idx_list)):
     i = idx_list[ii]
     output = net(input_tensor[i])
-    kappa_output = coeff2strain(tensor2numpyVec(output), pca)
-    [position_output, director_output] = strain2posdir(
-        kappa_output, dl, nominal_shear
-    )
+    strain_output = coeff2strain(tensor2numpyVec(output), pca)
+    [position_output, director_output] = strain2posdir(strain_output, dl)
     ax.plot(
         position_output[0, 0, :],
         position_output[0, 1, :],
@@ -139,15 +146,17 @@ for ii in range(len(idx_list)):
         marker="o",
         color=color[ii],
     )
-    ax.set_xlim(0, L)
+    ax.set_xlim(-L, 0)
     ax.set_ylim(-L, 0)
     ax.set_zlim(-L, 0)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
     ax.set_aspect("equal")
     for j in range(3):
-        axes[j].plot(s[1:-1], kappa_output[0, j, :], color=color[ii], ls="-")
-        axes[j].plot(s[1:-1], true_kappa[i, j, :], color=color[ii], ls="--")
+        axes[0][j].plot(s[1:-1], strain_output[0][0, j, :], color=color[ii], ls="-")
+        axes[0][j].plot(s[1:-1], true_kappa[i, j, :], color=color[ii], ls="--")
+        axes[1][j].plot(s_mean, strain_output[1][0, j, :], color=color[ii], ls="-")
+        axes[1][j].plot(s_mean, true_shear[i, j, :], color=color[ii], ls="--")
+        axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
+        axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
 
 plt.show()

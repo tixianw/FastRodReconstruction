@@ -8,7 +8,7 @@ from importlib import resources
 import numpy as np
 
 from assets import ASSETS
-from assets import FILE2_NAME as FILE_NAME
+from assets import FILE_NAME_OCTOPUS as FILE_NAME
 from neural_data_smoothing3D_full import pos_dir_to_input
 
 
