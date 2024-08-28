@@ -5,7 +5,7 @@ from importlib import resources
 import numpy as np
 import torch
 
-from assets import ASSETS, FILE_NAME, MODEL_NAME
+from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
     coeff2strain,
@@ -28,17 +28,17 @@ class ReconstructionModel:
             self.data_file_name = data_file_name
             rod_data = np.load(self.data_file_name, allow_pickle="TRUE").item()
         else:
-            with resources.path(ASSETS, FILE_NAME) as path:
+            with resources.path(ASSETS, FILE_NAME_BR2) as path:
                 rod_data = np.load(path, allow_pickle="TRUE").item()
-            self.data_file_name = "package_assets:" + ASSETS + "/" + FILE_NAME
+            self.data_file_name = "package_assets:" + ASSETS + "/" + FILE_NAME_BR2
 
         if model_file_name:
             self.model_file_name = model_file_name
             model_data = torch.load(self.model_file_name)
         else:
-            with resources.path(ASSETS, MODEL_NAME) as path:
+            with resources.path(ASSETS, MODEL_NAME_BR2) as path:
                 model_data = torch.load(path)
-            self.model_file_name = "package_assets:" + ASSETS + "/" + MODEL_NAME
+            self.model_file_name = "package_assets:" + ASSETS + "/" + MODEL_NAME_BR2
 
         self.__base_pose = fixed_base_pose.copy()
         self.__fixed_base_pose = fixed_base_pose.copy()

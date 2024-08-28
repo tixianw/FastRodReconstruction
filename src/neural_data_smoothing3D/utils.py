@@ -4,15 +4,24 @@ Created on Aug 18, 2024
 """
 
 import numpy as np
+import numpy.random as npr
 import torch
-
 # from tqdm import tqdm
 from numba import njit
 
+npr.seed(2024)
 
 def tensor2numpyVec(tensor):
     return tensor.detach().numpy()  # .flatten()
 
+
+# def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0.18) -> np.ndarray:
+#     noisy_pos = pos.copy() + npr.randn(*pos.shape)*noise_level*L
+#     noisy_dir = dir.copy()
+#     inputs: np.ndarray = np.hstack(
+#         [noisy_pos, dir[:, :, 0, :], dir[:, :, -1, :]]
+#     )  # only take d1 and d3 for dir
+#     return inputs
 
 # @njit(cache=True)
 def pos_dir_to_input(pos: np.ndarray, dir: np.ndarray) -> np.ndarray:

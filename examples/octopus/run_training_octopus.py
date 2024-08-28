@@ -8,9 +8,10 @@ from importlib import resources
 
 import numpy as np
 
-from assets import ASSETS, FILE_NAME
-from neural_data_smoothing3D import CurvatureSmoothing3DModel, TensorConstants
-from neural_data_smoothing3D.utils import _aver
+from assets import ASSETS
+from assets import FILE_NAME_OCTOPUS as FILE_NAME
+from neural_data_smoothing3D_full import CurvatureSmoothing3DModel, TensorConstants
+from neural_data_smoothing3D_full.utils import _aver
 
 # torch.manual_seed(2024)
 # npr.seed(2024)
@@ -19,9 +20,9 @@ from neural_data_smoothing3D.utils import _aver
 def main():
 
     folder_name = "assets"
-    training_data_name = "training_data_set_br2.npy"
+    training_data_name = "training_data_set_octopus.npy"
     if not os.path.exists(folder_name):
-        raise FileNotFoundError("Run create_training_set.py first")
+        raise FileNotFoundError("Run create_training_set_octopus.py first")
 
     # Construct the full path to the file
     file_path = os.path.join(folder_name, training_data_name)
@@ -30,7 +31,7 @@ def main():
     if not os.path.exists(file_path):
         raise FileNotFoundError(
             f"The file '{training_data_name}' does not exist in the '{folder_name}' folder. "
-            f"Run create_training_set.py first"
+            f"Run create_training_set_octopus.py first"
         )
 
     with resources.path(ASSETS, FILE_NAME) as path:
@@ -43,10 +44,11 @@ def main():
     dl = data["model"]["dl"]
     nominal_shear = data["model"]["nominal_shear"]
     idx_data_pts = data["idx_data_pts"]
-    input_data = data["input_data"]
-    true_pos = data["true_pos"]
-    true_dir = data["true_dir"]
-    true_kappa = data["true_kappa"]
+    # input_data = data["input_data"]
+    # true_pos = data["true_pos"]
+    # true_dir = data["true_dir"]
+    # true_kappa = data["true_kappa"]
+    # true_shear = data['true_shear']
     pca = data["pca"]
 
     training_data = np.load(
@@ -56,9 +58,10 @@ def main():
     true_pos = training_data["true_pos"]
     true_dir = training_data["true_dir"]
     true_kappa = training_data["true_kappa"]
-    # nominal_shear = training_data['true_shear']
+    true_shear = training_data['true_shear']
     input_size = training_data["input_size"]
     output_size = training_data["output_size"]
+    print("input_size:", input_size, "output_size:", output_size)
 
     E = 10**6
     G = E * 2 / 3
@@ -66,6 +69,7 @@ def main():
     bend_twist_stiff = ((_aver(A)) ** 2 / (4 * np.pi))[None, None, :] * np.diag(
         [E, E, 2 * G]
     )[..., None]
+    shear_stretch_stiff = A[None, None, :] * np.diag([G*4/3, G*4/3, E])[..., None]
 
     power_chi_r = 5  # 6 # 5 # 4 # 3
     power_chi_d = 5
@@ -75,6 +79,7 @@ def main():
 
     tensor_constants = TensorConstants(
         bend_twist_stiff,
+        shear_stretch_stiff,
         idx_data_pts,
         dl,
         chi_r,
@@ -99,13 +104,13 @@ def main():
         input_data,
         num_epochs,
         batch_size=batch_size,
-        labels=true_kappa,
+        labels=[true_kappa, true_shear],
     )
 
     model.model_train()
 
     flag_save = True
-    model_name = "/data_smoothing_model_br2_test.pt"
+    model_name = "/data_smoothing_model_octopus_test.pt"
 
     if flag_save:
         model.model_save(folder_name + model_name)
