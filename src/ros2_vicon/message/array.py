@@ -99,7 +99,7 @@ class NDArrayMessage:
         return self.data
 
     def to_hdf5(self) -> np.ndarray:
-        return self.data
+        return self.data.copy()
 
     def add_info(self, key: str, value: str) -> "NDArrayMessage":
         setattr(self.__message, key, value)

@@ -168,7 +168,18 @@ def main(
             topic="/vicon/pose",
             message=PoseMessage(
                 shape=(number_of_markers,),
-                axis_labels=("element",),
+                axis_labels=("marker",),
+            ),
+        ),
+        "input": SubscriptionInfo(
+            topic="/reconstruction/input",
+            message=NDArrayMessage(
+                shape=(
+                    4,
+                    4,
+                    number_of_markers - 1,
+                ),
+                axis_labels=("input", "", "marker"),
             ),
         ),
         "position": SubscriptionInfo(
