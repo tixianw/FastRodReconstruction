@@ -30,7 +30,9 @@ class ReconstructionModel:
         else:
             with resources.path(ASSETS, FILE_NAME_BR2) as path:
                 rod_data = np.load(path, allow_pickle="TRUE").item()
-            self.data_file_name = "package_assets:" + ASSETS + "/" + FILE_NAME_BR2
+            self.data_file_name = (
+                "package_assets:" + ASSETS + "/" + FILE_NAME_BR2
+            )
 
         if model_file_name:
             self.model_file_name = model_file_name
@@ -38,7 +40,9 @@ class ReconstructionModel:
         else:
             with resources.path(ASSETS, MODEL_NAME_BR2) as path:
                 model_data = torch.load(path)
-            self.model_file_name = "package_assets:" + ASSETS + "/" + MODEL_NAME_BR2
+            self.model_file_name = (
+                "package_assets:" + ASSETS + "/" + MODEL_NAME_BR2
+            )
 
         self.__base_pose = fixed_base_pose.copy()
         self.__fixed_base_pose = fixed_base_pose.copy()
@@ -92,6 +96,10 @@ class ReconstructionModel:
                 [0, 0, 1],
             ]
         )
+
+    @property
+    def rotation_matrix(self) -> np.ndarray:
+        return self.__rotation_matrix.copy()
 
     def remove_base_translation(
         self, marker_position: np.ndarray
