@@ -18,10 +18,10 @@ def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0
     noisy_pos = pos.copy() + npr.randn(*pos.shape) * noise_level * L
     random_axis = npr.randn(*dir[:,:,0,:].shape) * noise_level * 1.
     Rotation = get_rotation_matrix_numpy(random_axis)
-    noisy_dir = np.einsum("nijl,njkl->nikl", dir.copy(), Rotation)
+    noisy_dir = np.einsum("nijl,njkl->nikl", Rotation, dir.copy())
     inputs = np.hstack(
         [noisy_pos, noisy_dir[:, 0, :, :], noisy_dir[:, -1, :, :]]
-    )  # only take d1 and d3 for dir
+    )  # only take d1 and d3 for dir (row vectors)
     return inputs
 
 # @njit(cache=True)
@@ -152,55 +152,6 @@ def get_rotation_matrix(axis):
     Rotation[2, 2] += 1
 
     return Rotation
-
-# @njit(parallel=True)
-# def get_rotation_matrix_numba(axis):
-#     n_sample = len(axis)
-#     n_elem = axis.shape[-1] + 1
-#     angle = np.zeros(n_sample)
-#     for i in prange(n_sample):
-#         angle[i] = np.sqrt(np.sum(axis[i]**2))
-    
-#     axis_normalized = np.zeros_like(axis)
-#     for i in prange(n_sample):
-#         for j in range(3):
-#             axis_normalized[i, j] = axis[i, j] / (angle[i] + 1e-16)
-    
-#     K = np.zeros((n_sample, 3, 3, n_elem - 1))
-#     for i in prange(n_sample):
-#         for j in range(n_elem - 1):
-#             K[i, 2, 1, j] = axis_normalized[i, 0, j]
-#             K[i, 1, 2, j] = -axis_normalized[i, 0, j]
-#             K[i, 0, 2, j] = axis_normalized[i, 1, j]
-#             K[i, 2, 0, j] = -axis_normalized[i, 1, j]
-#             K[i, 1, 0, j] = axis_normalized[i, 2, j]
-#             K[i, 0, 1, j] = -axis_normalized[i, 2, j]
-    
-#     K2 = np.zeros((n_sample, 3, 3, n_elem - 1))
-#     for i in prange(n_sample):
-#         for j in range(3):
-#             for k in range(3):
-#                 for l in range(n_elem - 1):
-#                     K2[i, j, k, l] = axis_normalized[i, j, l] * axis_normalized[i, k, l]
-#                     if j == k:
-#                         K2[i, j, k, l] -= 1.0
-    
-#     Rotation = np.zeros((n_sample, 3, 3, n_elem - 1))
-#     for i in prange(n_sample):
-#         sin_angle = np.sin(angle[i])
-#         cos_angle = np.cos(angle[i])
-#         for j in range(3):
-#             for k in range(3):
-#                 for l in range(n_elem - 1):
-#                     Rotation[i, j, k, l] = (
-#                         K[i, j, k, l] * sin_angle +
-#                         K2[i, j, k, l] * (1 - cos_angle)
-#                     )
-#                     if j == k:
-#                         Rotation[i, j, k, l] += 1.0
-    
-#     return Rotation
-
 
 def get_rotation_matrix_numpy(axis):
     n_sample = len(axis)
