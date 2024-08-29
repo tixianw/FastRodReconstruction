@@ -105,7 +105,7 @@ def main():
     model.model_train()
 
     flag_save = True
-    model_name = "/data_smoothing_model_br2_test2.pt"
+    model_name = "/data_smoothing_model_br2_test.pt"
 
     if flag_save:
         model.model_save(folder_name + model_name)
