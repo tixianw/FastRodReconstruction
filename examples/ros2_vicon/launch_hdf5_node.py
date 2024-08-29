@@ -16,6 +16,7 @@ from ros2_vicon.node import LoggerNode
 class SubscriptionInfo:
     topic: str
     message: NDArrayMessage
+    timesignal: bool = True
 
 
 @dataclass
@@ -61,6 +62,7 @@ class HDF5WriterNode(LoggerNode):
             messages={
                 key: subscription_info.message
                 for key, subscription_info in self.subscriptions_info.items()
+                if subscription_info.timesignal
             },
             node=self,
             chunk_size=self.writer_info.chunk_size,
@@ -164,6 +166,13 @@ def main(
                 axis_labels=("time",),
             ),
         ),
+        "rotation_matrix": SubscriptionInfo(
+            topic="/reconstruction/initial_parameters/rotation_matrix",
+            message=NDArrayMessage(
+                shape=(3, 3),
+                axis_labels=("rotation_matrix", ""),
+            ),
+        ),
         "pose": SubscriptionInfo(
             topic="/vicon/pose",
             message=PoseMessage(
@@ -174,42 +183,28 @@ def main(
         "input": SubscriptionInfo(
             topic="/reconstruction/input",
             message=NDArrayMessage(
-                shape=(
-                    4,
-                    4,
-                    number_of_markers - 1,
-                ),
+                shape=(4, 4, number_of_markers - 1),
                 axis_labels=("input", "", "marker"),
             ),
         ),
         "position": SubscriptionInfo(
             topic="/reconstruction/position",
             message=NDArrayMessage(
-                shape=(
-                    3,
-                    number_of_elements + 1,
-                ),
+                shape=(3, number_of_elements + 1),
                 axis_labels=("position", "element"),
             ),
         ),
         "directors": SubscriptionInfo(
             topic="/reconstruction/directors",
             message=NDArrayMessage(
-                shape=(
-                    3,
-                    3,
-                    number_of_elements,
-                ),
+                shape=(3, 3, number_of_elements),
                 axis_labels=("directors", "director_index", "element"),
             ),
         ),
         "kappa": SubscriptionInfo(
             topic="/reconstruction/kappa",
             message=NDArrayMessage(
-                shape=(
-                    3,
-                    number_of_elements - 1,
-                ),
+                shape=(3, number_of_elements - 1),
                 axis_labels=("kappa", "element"),
             ),
         ),

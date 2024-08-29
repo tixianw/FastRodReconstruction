@@ -78,6 +78,16 @@ class ReconstructionNode(LoggerNode):
                 qos_profile=100,
                 node=self,
             ),
+            "rotation_matrix": NDArrayPublisher(
+                topic="/reconstruction/initial_parameters/rotation_matrix",
+                shape=(
+                    3,
+                    3,
+                ),
+                axis_labels=("rotation_matrix", ""),
+                qos_profile=100,
+                node=self,
+            ),
             "input": NDArrayPublisher(
                 topic="/reconstruction/input",
                 shape=self.__input.shape[1:],
@@ -164,6 +174,7 @@ class ReconstructionNode(LoggerNode):
         )
         self.time = new_time
         self.publish("pose", self.__pose[0])
+        self.publish("rotation_matrix", self.model.rotation_matrix)
         self.publish("input", self.__input[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
@@ -251,7 +262,7 @@ def main(log_level: str, source: str):
         subscription_topics=set_subsciption_topics(source),
         log_level=log_level,
         model_resource=ReconstructionModelResource(
-            rotation_angle_degree=-155.0
+            rotation_angle_degree=-150.0
         ),
     )
     try:
