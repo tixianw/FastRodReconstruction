@@ -38,8 +38,8 @@ class TensorConstants:
         self.dl = torch.from_numpy(dl).float()
         nominal_shear = np.vstack([np.zeros([2, 100]), np.ones(100)])
         self.nominal_shear = torch.from_numpy(nominal_shear).float()
-        self.chi_r = chi_r
-        self.chi_d = chi_d
+        self.chi_r = torch.from_numpy(chi_r).float() # chi_r
+        self.chi_d = torch.from_numpy(chi_d).float() # chi_d
         pca_mean = np.vstack([pca[i].mean for i in range(len(pca))])
         pca_std = np.vstack([pca[i].std for i in range(len(pca))])
         n_components = np.array([pca[i].n_components for i in range(len(pca))])
@@ -96,12 +96,12 @@ class CurvatureSmoothing3DLoss(nn.Module):
         )
         # inputs = torch.flatten(inputs, start_dim=1)
         pos_dir = coeff2posdir_torch(outputs, self.tensor_constants)
-        pos_difference = torch.flatten(input_pos - pos_dir[0], start_dim=1)
-        dir_difference = torch.flatten(input_dir - pos_dir[1], start_dim=1)
-        Phi = 0.5 * self.tensor_constants.chi_r * torch.sum(
-            pos_difference * pos_difference, axis=1
-        ) + 0.5 * self.tensor_constants.chi_d * torch.sum(
-            dir_difference * dir_difference, axis=1
+        pos_difference = input_pos - pos_dir[0] #  torch.flatten(input_pos - pos_dir[0], start_dim=1)
+        dir_difference = input_dir - pos_dir[1] # torch.flatten(input_dir - pos_dir[1], start_dim=1)
+        Phi = 0.5 * torch.sum(
+            pos_difference * pos_difference * self.tensor_constants.chi_r, axis=(1,2)
+        ) + 0.5 * torch.sum(
+            dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
         )
         return Phi.mean()
 
