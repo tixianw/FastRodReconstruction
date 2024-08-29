@@ -43,10 +43,10 @@ def main():
     dl = data["model"]["dl"]
     nominal_shear = data["model"]["nominal_shear"]
     idx_data_pts = data["idx_data_pts"]
-    input_data = data["input_data"]
-    true_pos = data["true_pos"]
-    true_dir = data["true_dir"]
-    true_kappa = data["true_kappa"]
+    # input_data = data["input_data"]
+    # true_pos = data["true_pos"]
+    # true_dir = data["true_dir"]
+    # true_kappa = data["true_kappa"]
     pca = data["pca"]
 
     training_data = np.load(
@@ -84,8 +84,8 @@ def main():
         output_size,
     )
     ## Train the model
-    num_epochs = int(100)
-    batch_size = 128  # 128 # 100
+    num_epochs = int(50)
+    batch_size = 128 # 128 # 100
     print(
         "# total samples:",
         len(input_data),
@@ -105,7 +105,7 @@ def main():
     model.model_train()
 
     flag_save = True
-    model_name = "/data_smoothing_model_br2_test.pt"
+    model_name = "/data_smoothing_model_br2_test2.pt"
 
     if flag_save:
         model.model_save(folder_name + model_name)

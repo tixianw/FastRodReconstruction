@@ -67,7 +67,7 @@ def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0
 #     # print('d3', dir[idx, :, -1, 0], noisy_dir[idx, :, -1, 0], '\n')
 #     return inputs
 
-@njit(cache=True)
+# @njit(cache=True)
 def pos_dir_to_input(pos: np.ndarray, dir: np.ndarray) -> np.ndarray:
     # input_dir : np.ndarray = dir.reshape(len(dir), -1, dir.shape[-1])
     # inputs : np.ndarray = np.hstack([pos, input_dir])

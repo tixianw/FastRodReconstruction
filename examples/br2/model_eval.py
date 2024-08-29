@@ -25,9 +25,9 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME_BR2) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = 'Data' # "assets" # 
+folder_name = "assets" # 'Data' # 
 test_data_name = "training_data_set_br2.npy"
-model_name = 'data_smoothing_model_br2_test.pt'
+model_name = 'data_smoothing_model_br2_test2.pt'
 if not os.path.exists(folder_name):
     with resources.path(ASSETS, MODEL_NAME_BR2) as path:
         model = torch.load(path)

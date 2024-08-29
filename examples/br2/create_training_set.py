@@ -55,7 +55,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e2) # 1e5
+	n_training_data = int(1e5) # 1e5
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -106,7 +106,7 @@ def main():
 			color=color[ii],
 		)
 		ax.set_xlim(0, L)
-		ax.set_ylim(-L, 0)
+		ax.set_ylim(0, L)
 		ax.set_zlim(-L, 0)  
 		ax.set_xlabel('x')
 		ax.set_ylabel('y')

@@ -2,7 +2,7 @@
 *.h5
 
 # User created data files
-examples/assets/
+examples/**/assets/
 
 # ROS2 specific
 ros2_bag/
