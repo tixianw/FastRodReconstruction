@@ -25,7 +25,7 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME_BR2) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-user_data_flag = True # False
+user_data_flag = False # True # 
 
 if user_data_flag:
     folder_name = 'assets' 
