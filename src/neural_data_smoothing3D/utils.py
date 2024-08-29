@@ -7,7 +7,7 @@ import numpy as np
 import numpy.random as npr
 import torch
 # from tqdm import tqdm
-from numba import njit, prange
+from numba import njit # , prange
 
 npr.seed(2024)
 
