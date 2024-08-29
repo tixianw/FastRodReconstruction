@@ -115,5 +115,5 @@ class ReconstructionModel:
                     self.__rotation_matrix
                     @ marker_directors[i, :, :, j]
                     @ rotation_matrix
-                )
+                ).T
         return update_maker_directors

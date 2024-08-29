@@ -20,60 +20,15 @@ def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0
     Rotation = get_rotation_matrix_numpy(random_axis)
     noisy_dir = np.einsum("nijl,njkl->nikl", dir.copy(), Rotation)
     inputs = np.hstack(
-        [noisy_pos, noisy_dir[:, :, 0, :], noisy_dir[:, :, -1, :]]
+        [noisy_pos, noisy_dir[:, 0, :, :], noisy_dir[:, -1, :, :]]
     )  # only take d1 and d3 for dir
     return inputs
 
 # @njit(cache=True)
-# def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0.18) -> np.ndarray:
-#     n_sample, _, n_marker = pos.shape
-    
-#     # Create noisy position
-#     noisy_pos = np.zeros_like(pos)
-#     for n in prange(n_sample):
-#         for i in range(3):
-#             for l in range(n_marker):
-#                 noisy_pos[n, i, l] = pos[n, i, l] + npr.normal(0, 1) * noise_level * L
-    
-#     # Create random axis
-#     random_axis = np.zeros((n_sample, 3, n_marker))
-#     for n in range(n_sample):
-#         for j in range(3):
-#             for l in range(n_marker):
-#                 random_axis[n, j, l] = npr.normal(0, 1) * noise_level / np.sqrt(3)
-    
-#     # Get rotation matrix
-#     Rotation = get_rotation_matrix_numba(random_axis)
-    
-#     # Create noisy direction
-#     noisy_dir = np.zeros_like(dir)
-#     for n in range(n_sample):
-#         for l in range(n_marker):
-#             for i in range(3):
-#                 for k in range(3):
-#                     noisy_dir[n, i, :, l] += dir[n, :, k, l] * Rotation[n, i, k, l]
-    
-#     # Combine inputs
-#     inputs = np.zeros((n_sample, 9, n_marker))
-#     for n in range(n_sample):
-#         for l in range(n_marker):
-#             inputs[n, :3, l] = noisy_pos[n, :, l]
-#             inputs[n, 3:6, l] = noisy_dir[n, :, 0, l]
-#             inputs[n, 6:9, l] = noisy_dir[n, :, -1, l]
-    
-#     # idx = 0
-#     # print('pos', pos[idx, :, 0], noisy_pos[idx, :, 0], '\n')
-#     # print('d1', dir[idx, :, 0, 0], noisy_dir[idx, :, 0, 0], '\n')
-#     # print('d3', dir[idx, :, -1, 0], noisy_dir[idx, :, -1, 0], '\n')
-#     return inputs
-
-# @njit(cache=True)
 def pos_dir_to_input(pos: np.ndarray, dir: np.ndarray) -> np.ndarray:
-    # input_dir : np.ndarray = dir.reshape(len(dir), -1, dir.shape[-1])
-    # inputs : np.ndarray = np.hstack([pos, input_dir])
     inputs: np.ndarray = np.hstack(
-        [pos, dir[:, :, 0, :], dir[:, :, -1, :]]
-    )  # only take d1 and d3 for dir
+        [pos, dir[:, 0, :, :], dir[:, -1, :, :]]
+    )  # only take d1 and d3 for dir (row vectors)
     return inputs
 
 
@@ -324,7 +279,7 @@ def forward_path_torch(dl, shear, kappa):
     Rotation = get_rotation_matrix_torch(kappa * _aver(dl))
     for i in range(dl.shape[0] - 1):
         directors.append(
-            torch.einsum("nij,njk->nik", directors[-1], Rotation[..., i])
+            torch.einsum("nji,njk->nik", Rotation[..., i], directors[-1])
         )
     directors = torch.stack(directors, axis=-1)
     positions = integrate_for_position(directors, shear * dl)
