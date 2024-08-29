@@ -30,7 +30,7 @@ user_data_flag = True # False
 if user_data_flag:
     folder_name = 'assets' 
     test_data_name = "training_data_set_br2.npy"
-    model_name = 'data_smoothing_model_br2_test2_2.pt'
+    model_name = 'data_smoothing_model_br2_test2.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)

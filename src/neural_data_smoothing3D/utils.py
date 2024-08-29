@@ -230,7 +230,7 @@ def forward_path_torch(dl, shear, kappa):
     Rotation = get_rotation_matrix_torch(kappa * _aver(dl))
     for i in range(dl.shape[0] - 1):
         directors.append(
-            torch.einsum("nji,njk->nik", Rotation[..., i], directors[-1])
+            torch.einsum("nji,njk->nik", Rotation[..., i], directors[-1]) # R.T@Q where Q is row-vector-based
         )
     directors = torch.stack(directors, axis=-1)
     positions = integrate_for_position(directors, shear * dl)
