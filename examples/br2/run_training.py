@@ -67,8 +67,8 @@ def main():
         [E, E, 2 * G]
     )[..., None]
 
-    power_chi_r = 5  # 6 # 5 # 4 # 3
-    power_chi_d = 5
+    power_chi_r = 6  # 6 # 5 # 4 # 3
+    power_chi_d = 6
     chi_r = 10**power_chi_r  # 1
     chi_d = 10**power_chi_d
     chi_u = 0  # 1e-5
@@ -85,7 +85,7 @@ def main():
     )
     ## Train the model
     num_epochs = int(50)
-    batch_size = 128 # 128 # 100
+    batch_size = 256 # 128 # 100
     print(
         "# total samples:",
         len(input_data),
@@ -105,7 +105,7 @@ def main():
     model.model_train()
 
     flag_save = True
-    model_name = "/data_smoothing_model_br2_test.pt"
+    model_name = "/data_smoothing_model_br2_test2_2.pt"
 
     if flag_save:
         model.model_save(folder_name + model_name)
