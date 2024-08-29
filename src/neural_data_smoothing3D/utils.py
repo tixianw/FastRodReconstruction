@@ -1,5 +1,5 @@
 """
-Created on Aug 18, 2024
+Created on Aug 28, 2024
 @author: Tixian Wang
 """
 
@@ -7,20 +7,64 @@ import numpy as np
 import numpy.random as npr
 import torch
 # from tqdm import tqdm
-from numba import njit
+from numba import njit # , prange
 
 npr.seed(2024)
 
 def tensor2numpyVec(tensor):
     return tensor.detach().numpy()  # .flatten()
 
+def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0.18) -> np.ndarray:
+    noisy_pos = pos.copy() + npr.randn(*pos.shape) * noise_level * L
+    random_axis = npr.randn(*dir[:,:,0,:].shape) * noise_level * 1.
+    Rotation = get_rotation_matrix_numpy(random_axis)
+    noisy_dir = np.einsum("nijl,njkl->nikl", dir.copy(), Rotation)
+    inputs = np.hstack(
+        [noisy_pos, noisy_dir[:, :, 0, :], noisy_dir[:, :, -1, :]]
+    )  # only take d1 and d3 for dir
+    return inputs
 
+# @njit(cache=True)
 # def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0.18) -> np.ndarray:
-#     noisy_pos = pos.copy() + npr.randn(*pos.shape)*noise_level*L
-#     noisy_dir = dir.copy()
-#     inputs: np.ndarray = np.hstack(
-#         [noisy_pos, dir[:, :, 0, :], dir[:, :, -1, :]]
-#     )  # only take d1 and d3 for dir
+#     n_sample, _, n_marker = pos.shape
+    
+#     # Create noisy position
+#     noisy_pos = np.zeros_like(pos)
+#     for n in prange(n_sample):
+#         for i in range(3):
+#             for l in range(n_marker):
+#                 noisy_pos[n, i, l] = pos[n, i, l] + npr.normal(0, 1) * noise_level * L
+    
+#     # Create random axis
+#     random_axis = np.zeros((n_sample, 3, n_marker))
+#     for n in range(n_sample):
+#         for j in range(3):
+#             for l in range(n_marker):
+#                 random_axis[n, j, l] = npr.normal(0, 1) * noise_level / np.sqrt(3)
+    
+#     # Get rotation matrix
+#     Rotation = get_rotation_matrix_numba(random_axis)
+    
+#     # Create noisy direction
+#     noisy_dir = np.zeros_like(dir)
+#     for n in range(n_sample):
+#         for l in range(n_marker):
+#             for i in range(3):
+#                 for k in range(3):
+#                     noisy_dir[n, i, :, l] += dir[n, :, k, l] * Rotation[n, i, k, l]
+    
+#     # Combine inputs
+#     inputs = np.zeros((n_sample, 9, n_marker))
+#     for n in range(n_sample):
+#         for l in range(n_marker):
+#             inputs[n, :3, l] = noisy_pos[n, :, l]
+#             inputs[n, 3:6, l] = noisy_dir[n, :, 0, l]
+#             inputs[n, 6:9, l] = noisy_dir[n, :, -1, l]
+    
+#     # idx = 0
+#     # print('pos', pos[idx, :, 0], noisy_pos[idx, :, 0], '\n')
+#     # print('d1', dir[idx, :, 0, 0], noisy_dir[idx, :, 0, 0], '\n')
+#     # print('d3', dir[idx, :, -1, 0], noisy_dir[idx, :, -1, 0], '\n')
 #     return inputs
 
 # @njit(cache=True)
@@ -85,7 +129,7 @@ def coeff2posdir(coeff, pca, dl, nominal_shear):
     return posdir
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def forward_path(dl, shear, kappa, position_collection, director_collection):
     for i in range(dl.shape[0] - 1):
         next_position(
@@ -101,7 +145,7 @@ def forward_path(dl, shear, kappa, position_collection, director_collection):
     )
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def next_position(director, delta, positions):
     positions[:, 1] = positions[:, 0]
     for index_i in range(3):
@@ -110,7 +154,7 @@ def next_position(director, delta, positions):
     return
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def next_director(axis, directors):
     Rotation = get_rotation_matrix(axis)
     for index_i in range(3):
@@ -123,11 +167,11 @@ def next_director(axis, directors):
     return
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def get_rotation_matrix(axis):
     angle = np.sqrt(axis[0] ** 2 + axis[1] ** 2 + axis[2] ** 2)
 
-    axis = axis / (angle + 1e-8)
+    axis = axis / (angle + 1e-16)
     K = np.zeros((3, 3))
     K[2, 1] = axis[0]
     K[1, 2] = -axis[0]
@@ -152,6 +196,81 @@ def get_rotation_matrix(axis):
     Rotation[1, 1] += 1
     Rotation[2, 2] += 1
 
+    return Rotation
+
+# @njit(parallel=True)
+# def get_rotation_matrix_numba(axis):
+#     n_sample = len(axis)
+#     n_elem = axis.shape[-1] + 1
+#     angle = np.zeros(n_sample)
+#     for i in prange(n_sample):
+#         angle[i] = np.sqrt(np.sum(axis[i]**2))
+    
+#     axis_normalized = np.zeros_like(axis)
+#     for i in prange(n_sample):
+#         for j in range(3):
+#             axis_normalized[i, j] = axis[i, j] / (angle[i] + 1e-16)
+    
+#     K = np.zeros((n_sample, 3, 3, n_elem - 1))
+#     for i in prange(n_sample):
+#         for j in range(n_elem - 1):
+#             K[i, 2, 1, j] = axis_normalized[i, 0, j]
+#             K[i, 1, 2, j] = -axis_normalized[i, 0, j]
+#             K[i, 0, 2, j] = axis_normalized[i, 1, j]
+#             K[i, 2, 0, j] = -axis_normalized[i, 1, j]
+#             K[i, 1, 0, j] = axis_normalized[i, 2, j]
+#             K[i, 0, 1, j] = -axis_normalized[i, 2, j]
+    
+#     K2 = np.zeros((n_sample, 3, 3, n_elem - 1))
+#     for i in prange(n_sample):
+#         for j in range(3):
+#             for k in range(3):
+#                 for l in range(n_elem - 1):
+#                     K2[i, j, k, l] = axis_normalized[i, j, l] * axis_normalized[i, k, l]
+#                     if j == k:
+#                         K2[i, j, k, l] -= 1.0
+    
+#     Rotation = np.zeros((n_sample, 3, 3, n_elem - 1))
+#     for i in prange(n_sample):
+#         sin_angle = np.sin(angle[i])
+#         cos_angle = np.cos(angle[i])
+#         for j in range(3):
+#             for k in range(3):
+#                 for l in range(n_elem - 1):
+#                     Rotation[i, j, k, l] = (
+#                         K[i, j, k, l] * sin_angle +
+#                         K2[i, j, k, l] * (1 - cos_angle)
+#                     )
+#                     if j == k:
+#                         Rotation[i, j, k, l] += 1.0
+    
+#     return Rotation
+
+
+def get_rotation_matrix_numpy(axis):
+    n_sample = len(axis)
+    n_elem = axis.shape[-1] + 1
+    angle = np.linalg.norm(axis, axis=1)
+    axis = axis / (angle[:, None] + 1e-16)
+
+    K = np.zeros((n_sample, 3, 3, n_elem - 1))
+    K[:, 2, 1, :] = axis[:, 0, :]
+    K[:, 1, 2, :] = -axis[:, 0, :]
+    K[:, 0, 2, :] = axis[:, 1, :]
+    K[:, 2, 0, :] = -axis[:, 1, :]
+    K[:, 1, 0, :] = axis[:, 2, :]
+    K[:, 0, 1, :] = -axis[:, 2, :]
+
+    K2 = (
+        np.einsum("nik,njk->nijk", axis, axis)
+        - np.eye(3)[None, ..., None]
+    )
+
+    Rotation = (
+        K * np.sin(angle)[:, None, None, :]
+        + K2 * (1 - np.cos(angle))[:, None, None, :]
+        + np.eye(3)[None, ..., None]
+    )
     return Rotation
 
 
@@ -218,18 +337,6 @@ def integrate_for_position(directors, delta):
     return positions
 
 
-# # @njit(cache=True)
-# def next_position_torch(director, delta, positions):
-# 	positions[:, 1] = positions[:, 0] + torch.mv(director, delta)
-# 	return
-
-# # @njit(cache=True)
-# def next_director_torch(axis, directors):
-# 	Rotation = get_rotation_matrix_torch(axis)
-# 	directors[:, :, 1] = torch.einsum('ij,jk->ik', directors[:, :, 0], Rotation)
-# 	return
-
-
 # @njit(cache=True)
 def get_rotation_matrix_torch(axis):
     n_sample = len(axis)
@@ -256,6 +363,4 @@ def get_rotation_matrix_torch(axis):
         + K2 * (1 - torch.cos(angle))[:, None, None, :]
         + torch.eye(3)[None, ..., None]
     )
-    # Rotation = torch.matmul(K, torch.sin(angle)) + torch.matmul(K2, (1 - torch.cos(angle))) + torch.eye(3)
-    # print(Rotation.shape)
     return Rotation

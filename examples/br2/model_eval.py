@@ -25,15 +25,12 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME_BR2) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = 'Data' # "assets" # 
-test_data_name = "training_data_set_br2.npy"
-model_name = 'data_smoothing_model_br2_test.pt'
-if not os.path.exists(folder_name):
-    with resources.path(ASSETS, MODEL_NAME_BR2) as path:
-        model = torch.load(path)
-    test_data = data
-    print('No user trained model. Evalulating developer\'s trained model...')
-else:
+user_data_flag = True # False
+
+if user_data_flag:
+    folder_name = 'assets' 
+    test_data_name = "training_data_set_br2.npy"
+    model_name = 'data_smoothing_model_br2_test.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
@@ -41,6 +38,12 @@ else:
         test_data_file_path, allow_pickle="TRUE"
     ).item()
     print('Evalulating user\'s trained model...')
+else:
+    with resources.path(ASSETS, MODEL_NAME_BR2) as path:
+        model = torch.load(path)
+    test_data = data
+    print('No user trained model. Evalulating developer\'s trained model...')
+
 
 ## import rod parameters
 n_elem = data["model"]["n_elem"]
