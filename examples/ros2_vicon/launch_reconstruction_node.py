@@ -15,6 +15,7 @@ from ros2_vicon import (
     Timer,
     ViconPoseSubscriber,
 )
+from ros2_vicon.filter import PoseFilter
 from ros2_vicon.node import LoggerNode
 
 
@@ -54,6 +55,13 @@ class ReconstructionNode(LoggerNode):
             self.__subscribers.append(subscriber)
         self.init_data()
 
+        # Initialize pose filter
+        self.log_info("- Pose filter initializing...")
+        self.filter = PoseFilter(
+            director_filter_gain=np.array([0.1, 0.1, 0.1]),
+            position_filter_gain=np.array([0.1, 0.1, 0.1]),
+        )
+
         # Initialize reconstruction model
         self.log_info("- Reconstruction model initializing...")
         self.model = (
@@ -74,6 +82,13 @@ class ReconstructionNode(LoggerNode):
         self.__publishers: Dict[str, Union[PosePublisher, NDArrayPublisher]] = {
             "pose": PosePublisher(
                 topic="/vicon/pose",
+                length=self.number_of_markers,
+                label="marker",
+                qos_profile=100,
+                node=self,
+            ),
+            "filtered_pose": PosePublisher(
+                topic="/filter/pose",
                 length=self.number_of_markers,
                 label="marker",
                 qos_profile=100,
@@ -134,10 +149,10 @@ class ReconstructionNode(LoggerNode):
 
     def init_data(self) -> None:
         self.number_of_markers = len(self.__subscribers)
-        self.__pose = np.zeros((1, 4, 4, self.number_of_markers))
-        self.__pose[0, 3, 3, :] = 1.0
+        self.__pose = np.zeros((4, 4, self.number_of_markers))
+        self.__pose[3, 3, :] = 1.0
         for i in range(self.number_of_markers):
-            self.__pose[0, :3, :3, i] = np.diag([1, -1, -1])
+            self.__pose[:3, :3, i] = np.diag([1, -1, -1])
         self.__input = np.zeros((1, 4, 4, self.number_of_markers - 1))
         self.__input[0, 3, 3, :] = 1.0
         for i in range(self.number_of_markers - 1):
@@ -174,7 +189,8 @@ class ReconstructionNode(LoggerNode):
             f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
         )
         self.time = new_time
-        self.publish("pose", self.__pose[0])
+        self.publish("pose", self.__pose)
+        self.publish("filtered_pose", self.filter.pose)
         self.publish("rotation_matrix", self.model.alignment_matrix)
         self.publish("input", self.__input[0])
         self.publish("position", self.result.position)
@@ -186,20 +202,27 @@ class ReconstructionNode(LoggerNode):
     def create_pose(self) -> None:
         # Create pose from the subscribers
         for i, subscriber in enumerate(self.__subscribers):
-            self.__pose[0, :3, 3, i] = subscriber.message.position.copy()
-            self.__pose[0, :3, :3, i] = subscriber.message.directors.copy()
+            self.__pose[:3, 3, i] = subscriber.message.position.copy()
+            self.__pose[:3, :3, i] = subscriber.message.directors.copy()
 
     def create_input(self) -> np.ndarray:
+        # pose = self.__pose
+        pose = self.filter.pose
+
         # Create input from pose
-        self.model.set_base_pose(self.__pose[0, ..., 0])
+        self.model.set_base_pose(pose[..., 0])
         # self.__input[:, :3, 3, :] = self.model.remove_base_translation(
         #     marker_position=self.__pose[:, :3, 3, 1:]
         # )
         # self.__input[:, :3, :3, :] = self.model.remove_base_rotation(
         #     marker_directors=self.__pose[:, :3, :3, 1:]
         # )
-        self.__input[:, :, :, :] = self.model.remove_base_pose_offset(
-            marker_pose=self.__pose[:, :, :, 1:]
+        base_removed_pose = self.model.remove_base_pose_offset(
+            marker_pose=pose[..., 1:]
+        )
+        self.__input[:, :3, 3, :] = base_removed_pose[:, :3, 3, :]
+        self.__input[:, :3, :3, :] = np.transpose(
+            base_removed_pose[:, :3, :3, :], (0, 2, 1, 3)
         )
 
         return pos_dir_to_input(
@@ -209,6 +232,7 @@ class ReconstructionNode(LoggerNode):
 
     def reconstruct(self) -> None:
         self.create_pose()
+        self.filter.update(self.__pose)
         self.model(self.create_input())
 
     def publish(
@@ -265,7 +289,9 @@ def main(log_level: str, source: str):
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source),
         log_level=log_level,
-        model_resource=ReconstructionModelResource(rotation_angle_degree=20.0),
+        model_resource=ReconstructionModelResource(
+            rotation_angle_degree=-155.0
+        ),
     )
     try:
         node.start()

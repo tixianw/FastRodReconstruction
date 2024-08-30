@@ -135,18 +135,21 @@ class ReconstructionModel:
         return update_maker_directors
 
     def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
-        updated_marker_pose = marker_pose.copy()
+        if marker_pose.ndim == 3:
+            marker_pose = np.expand_dims(marker_pose, axis=0)
+        assert marker_pose.ndim == 4, "marker_pose must be 3D or 4D array"
+
+        updated_marker_pose = np.zeros(marker_pose.shape)
 
         batch_size = marker_pose.shape[0]
         number_of_markers = marker_pose.shape[3]
 
+        translation_offset = -self.__base_pose[:3, 3]
+        rotation_offset = (
+            self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
+        )
+
         for b in range(batch_size):
-
-            translation_offset = -self.__base_pose[0, 3]
-            rotation_offset = (
-                self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
-            )
-
             for i in range(number_of_markers):
                 updated_marker_pose[b, :3, 3, i] = self.alignment_matrix @ (
                     translation_offset + marker_pose[b, :3, 3, i]

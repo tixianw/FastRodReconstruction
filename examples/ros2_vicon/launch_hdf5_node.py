@@ -180,6 +180,13 @@ def main(
                 axis_labels=("marker",),
             ),
         ),
+        "filtered_pose": SubscriptionInfo(
+            topic="/filter/pose",
+            message=PoseMessage(
+                shape=(number_of_markers,),
+                axis_labels=("marker",),
+            ),
+        ),
         "input": SubscriptionInfo(
             topic="/reconstruction/input",
             message=NDArrayMessage(
