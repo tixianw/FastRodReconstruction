@@ -46,7 +46,7 @@ class ReconstructionModel:
 
         self.__base_pose = fixed_base_pose.copy()
         self.__fixed_base_pose = fixed_base_pose.copy()
-        self.__rotation_matrix = np.eye(3)
+        self.__bending_rotation_matrix = np.eye(3)
 
         # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
         # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
@@ -73,6 +73,13 @@ class ReconstructionModel:
 
         self.result = ReconstructionResult(self.number_of_elements)
 
+    def __str__(self) -> str:
+        return (
+            f"ReconstructionModel("
+            f"\n    data_file_name={self.data_file_name}, "
+            f"\n    model_file_name={self.model_file_name}\n)"
+        )
+
     def __call__(self, marker_data: np.ndarray) -> ReconstructionResult:
         # update the result with the new marker data
         input_tensor = torch.from_numpy(marker_data).float()
@@ -89,7 +96,7 @@ class ReconstructionModel:
 
     def set_rotation_angle_degree(self, angle: float):
         angle = np.deg2rad(angle)
-        self.__rotation_matrix = np.array(
+        self.__bending_rotation_matrix = np.array(
             [
                 [np.cos(angle), -np.sin(angle), 0],
                 [np.sin(angle), np.cos(angle), 0],
@@ -98,8 +105,8 @@ class ReconstructionModel:
         )
 
     @property
-    def rotation_matrix(self) -> np.ndarray:
-        return self.__rotation_matrix.copy()
+    def alignment_matrix(self) -> np.ndarray:
+        return self.__bending_rotation_matrix.copy()
 
     def remove_base_translation(
         self, marker_position: np.ndarray
@@ -107,21 +114,74 @@ class ReconstructionModel:
         updated_marker_position = marker_position.copy()
         for i in range(marker_position.shape[0]):
             for j in range(marker_position.shape[2]):
-                updated_marker_position[i, :, j] = self.__rotation_matrix @ (
-                    marker_position[i, :, j] - self.__base_pose[:3, 3]
+                updated_marker_position[i, :, j] = (
+                    self.__bending_rotation_matrix
+                    @ (marker_position[i, :, j] - self.__base_pose[:3, 3])
                 )
         return updated_marker_position
 
     def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
         update_maker_directors = marker_directors.copy()
         rotation_matrix = (
-            self.__rotation_matrix @ self.__base_pose[:3, :3]
+            self.__bending_rotation_matrix @ self.__base_pose[:3, :3]
         ).T @ self.__fixed_base_pose[:3, :3]
         for i in range(marker_directors.shape[0]):
             for j in range(marker_directors.shape[3]):
                 update_maker_directors[i, :, :, j] = (
-                    self.__rotation_matrix
+                    self.__bending_rotation_matrix
                     @ marker_directors[i, :, :, j]
                     @ rotation_matrix
                 ).T
         return update_maker_directors
+
+    def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
+        updated_marker_pose = marker_pose.copy()
+
+        batch_size = marker_pose.shape[0]
+        number_of_markers = marker_pose.shape[3]
+
+        for b in range(batch_size):
+
+            translation_offset = -self.__base_pose[0, 3]
+            rotation_offset = (
+                self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
+            )
+
+            for i in range(number_of_markers):
+                updated_marker_pose[b, :3, 3, i] = self.alignment_matrix @ (
+                    translation_offset + marker_pose[b, :3, 3, i]
+                )
+                updated_marker_pose[b, :3, :3, i] = (
+                    rotation_offset @ marker_pose[b, :3, :3, i]
+                )
+
+        # Remove offset
+        # for i in range(marker_pose.shape[0]):
+        #     for j in range(marker_pose.shape[3]):
+        #         updated_marker_pose[i, :3, 3, j] = (
+        #             marker_pose[i, :3, 3, j] - self.__base_pose[:3, 3]
+        #         )
+
+        # Align bending direction
+        # for i in range(marker_pose.shape[0]):
+        #     for j in range(marker_pose.shape[3]):
+        #         updated_marker_pose[i, :3, :, j] = (
+        #             self.__bending_rotation_matrix @ updated_marker_pose[i, :3, :, j]
+        #         )
+        #         updated_marker_pose[i, :3, :3, j] = (
+        #             self.__bending_rotation_matrix @ updated_marker_pose[i, :3, :3, j]
+        #         )
+
+        # Remove rotation
+        # rotation_matrix = (
+        #     self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
+        # )
+        # for i in range(marker_pose.shape[0]):
+        #     for j in range(marker_pose.shape[3]):
+        #         updated_marker_pose[i, :3, :3, j] = (
+        #             rotation_matrix @ updated_marker_pose[i, :3, :3, j]
+        #         )
+        #         updated_marker_pose[i, :3, 3, j] = (
+        #             rotation_matrix @ updated_marker_pose[i, :3, 3, j]
+        #         )
+        return updated_marker_pose

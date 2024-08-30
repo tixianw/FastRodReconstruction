@@ -67,6 +67,7 @@ class ReconstructionNode(LoggerNode):
         self.model.set_rotation_angle_degree(
             angle=model_resource.rotation_angle_degree
         )
+        self.log_info(f"\n{self.model}")
 
         # Initialize publishers
         self.log_info("- Publishers initializing...")
@@ -174,7 +175,7 @@ class ReconstructionNode(LoggerNode):
         )
         self.time = new_time
         self.publish("pose", self.__pose[0])
-        self.publish("rotation_matrix", self.model.rotation_matrix)
+        self.publish("rotation_matrix", self.model.alignment_matrix)
         self.publish("input", self.__input[0])
         self.publish("position", self.result.position)
         self.publish("directors", self.result.directors)
@@ -191,11 +192,14 @@ class ReconstructionNode(LoggerNode):
     def create_input(self) -> np.ndarray:
         # Create input from pose
         self.model.set_base_pose(self.__pose[0, ..., 0])
-        self.__input[:, :3, 3, :] = self.model.remove_base_translation(
-            marker_position=self.__pose[:, :3, 3, 1:]
-        )
-        self.__input[:, :3, :3, :] = self.model.remove_base_rotation(
-            marker_directors=self.__pose[:, :3, :3, 1:]
+        # self.__input[:, :3, 3, :] = self.model.remove_base_translation(
+        #     marker_position=self.__pose[:, :3, 3, 1:]
+        # )
+        # self.__input[:, :3, :3, :] = self.model.remove_base_rotation(
+        #     marker_directors=self.__pose[:, :3, :3, 1:]
+        # )
+        self.__input[:, :, :, :] = self.model.remove_base_pose_offset(
+            marker_pose=self.__pose[:, :, :, 1:]
         )
 
         return pos_dir_to_input(
@@ -261,9 +265,7 @@ def main(log_level: str, source: str):
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source),
         log_level=log_level,
-        model_resource=ReconstructionModelResource(
-            rotation_angle_degree=-150.0
-        ),
+        model_resource=ReconstructionModelResource(rotation_angle_degree=20.0),
     )
     try:
         node.start()
