@@ -68,7 +68,7 @@ def main():
     )[..., None]
 
     power_chi_r = np.array([5, 6]) # 6 # 5 # 4 # 3
-    power_chi_d = np.array([5, 6]) # 5 # 6
+    power_chi_d = np.array([0, 0]) # 5 # 6
     chi_r = 10**power_chi_r  # 1
     chi_d = 10**power_chi_d
     chi_u = 0  # 1e-5
@@ -84,7 +84,7 @@ def main():
         output_size,
     )
     ## Train the model
-    num_epochs = int(50)
+    num_epochs = int(5)
     batch_size = 128 # 256 # 128 # 100
     print(
         "# total samples:",
@@ -93,6 +93,9 @@ def main():
         num_epochs,
         "batch size:",
         batch_size,
+        "regularizations:",
+        tensor_constants.chi_r,
+        tensor_constants.chi_d,
     )
     model = CurvatureSmoothing3DModel(
         tensor_constants,
@@ -102,13 +105,13 @@ def main():
         labels=true_kappa,
     )
 
-    model.model_train()
+    model_name = "/data_smoothing_model_br2_test_save"
+    model.model_train(file_name=folder_name+model_name, check_epoch_idx=10)
 
-    flag_save = True
-    model_name = "/data_smoothing_model_br2_test2.pt"
+    # flag_save = True
 
-    if flag_save:
-        model.model_save(folder_name + model_name)
+    # if flag_save:
+        # model.model_save(folder_name + model_name)
 
 
 if __name__ == "__main__":

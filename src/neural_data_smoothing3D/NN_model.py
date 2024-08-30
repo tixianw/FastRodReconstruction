@@ -229,8 +229,8 @@ class CurvatureSmoothing3DModel:
                 )
                 running_loss = 0.0
                 self.train_losses.append(last_loss)
-
-    def model_train(self):
+    
+    def model_train(self, file_name, check_epoch_idx=10):
         for epoch_idx in range(self.num_epochs):
             ## Make sure gradient tracking is on, and do a pass over the data
             self.net.train(True)
@@ -251,19 +251,23 @@ class CurvatureSmoothing3DModel:
                 f"Losses: train {self.train_losses[-1]:.8f} valid {avg_vloss:.8f}"
             )
 
-        self.test_loss = 0.0
-        for i, test_inputs in enumerate(self.test_loader):
-            test_outputs = self.net(test_inputs)
-            t_loss = self.loss_fn(test_outputs, test_inputs)
-            self.test_loss += t_loss.item()
-        self.test_loss /= i + 1
-        print(f"test loss: {self.test_loss:.8f}")
+            if (epoch_idx+1)%check_epoch_idx==0 or ((epoch_idx+1)%check_epoch_idx and epoch_idx==self.num_epochs-1):
 
-    def model_save(self, file_name):
+                self.test_loss = 0.0
+                for i, test_inputs in enumerate(self.test_loader):
+                    test_outputs = self.net(test_inputs)
+                    t_loss = self.loss_fn(test_outputs, test_inputs)
+                    self.test_loss += t_loss.item()
+                self.test_loss /= i + 1
+                print(f"test loss at epoch {epoch_idx:d}: {self.test_loss:.8f}")
+                self.model_save(file_name, epoch_idx)
+
+    def model_save(self, file_name, epoch_idx):
         torch.save(
             {
                 "batch_size": self.batch_size,
                 "num_epochs": self.num_epochs,
+                'current_epoch': epoch_idx,
                 "tensor_constants": self.tensor_constants,
                 "model": self.net.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
@@ -273,8 +277,55 @@ class CurvatureSmoothing3DModel:
                     self.test_loss,
                 ],
             },
-            file_name,
+            file_name+'_epoch%03d'%(epoch_idx+1)+'.pt',
         )
+
+
+    # def model_train(self):
+    #     for epoch_idx in range(self.num_epochs):
+    #         ## Make sure gradient tracking is on, and do a pass over the data
+    #         self.net.train(True)
+    #         self.train_one_epoch(epoch_idx)
+
+    #         running_vloss = 0.0
+    #         self.net.eval()
+    #         # Disable gradient computation and reduce memory consumption.
+    #         with torch.no_grad():
+    #             for i, vinputs in enumerate(self.validation_loader):
+    #                 voutputs = self.net(vinputs)
+    #                 vloss = self.loss_fn(voutputs, vinputs)
+    #                 running_vloss += vloss.item()
+
+    #         avg_vloss = running_vloss / (i + 1)
+    #         self.validation_losses.append(avg_vloss)
+    #         print(
+    #             f"Losses: train {self.train_losses[-1]:.8f} valid {avg_vloss:.8f}"
+    #         )
+
+    #     self.test_loss = 0.0
+    #     for i, test_inputs in enumerate(self.test_loader):
+    #         test_outputs = self.net(test_inputs)
+    #         t_loss = self.loss_fn(test_outputs, test_inputs)
+    #         self.test_loss += t_loss.item()
+    #     self.test_loss /= i + 1
+    #     print(f"test loss: {self.test_loss:.8f}")
+
+    # def model_save(self, file_name):
+    #     torch.save(
+    #         {
+    #             "batch_size": self.batch_size,
+    #             "num_epochs": self.num_epochs,
+    #             "tensor_constants": self.tensor_constants,
+    #             "model": self.net.state_dict(),
+    #             "optimizer": self.optimizer.state_dict(),
+    #             "losses": [
+    #                 self.train_losses,
+    #                 self.validation_losses,
+    #                 self.test_loss,
+    #             ],
+    #         },
+    #         file_name,
+    #     )
 
 
 def main():
