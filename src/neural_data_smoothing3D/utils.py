@@ -14,9 +14,9 @@ npr.seed(2024)
 def tensor2numpyVec(tensor):
     return tensor.detach().numpy()  # .flatten()
 
-def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level=0., L=0.18) -> np.ndarray:
-    noisy_pos = pos.copy() + npr.randn(*pos.shape) * noise_level * L
-    random_axis = npr.randn(*dir[:,:,0,:].shape) * noise_level * 1.
+def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level_p=0., noise_level_d=0., L=0.18) -> np.ndarray:
+    noisy_pos = pos.copy() + npr.randn(*pos.shape) * noise_level_p * L ## 0.01 level is 1 percent of nominal length
+    random_axis = npr.randn(*dir[:,:,0,:].shape) * noise_level_d ## 0.01 level is 1 degree
     Rotation = get_rotation_matrix_numpy(random_axis)
     noisy_dir = np.einsum("nijl,njkl->nikl", Rotation, dir.copy())
     inputs = np.hstack(

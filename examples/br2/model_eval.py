@@ -32,8 +32,8 @@ if user_data_flag:
     folder_name = 'assets' 
     test_data_name = "training_data_set_br2.npy"
     # model_name = 'data_smoothing_model_br2_bending.pt'
-    model_name = 'data_smoothing_model_br2_test' # _save'
-    idx = 20
+    model_name = 'data_smoothing_model_br2_test1' # _save'
+    idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
@@ -57,6 +57,7 @@ s = data["model"]["s"]
 dl = data["model"]["dl"]
 nominal_shear = data["model"]["nominal_shear"]
 idx_data_pts = data["idx_data_pts"]
+print('idx_data_pts', idx_data_pts)
 pca = data["pca"]
 
 ## test data

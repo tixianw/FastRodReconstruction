@@ -76,7 +76,7 @@ def main():
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
-	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level=0.02, L=L)
+	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level_p=0.02, noise_level_d=0.05, L=L) ## 1 degree is 0.01 level_d
 	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
 	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
