@@ -16,6 +16,7 @@ from assets import FILE_NAME_OCTOPUS as FILE_NAME
 from assets import MODEL_NAME_OCTOPUS as MODEL_NAME
 from neural_data_smoothing3D_full import (
     CurvatureSmoothing3DNet,
+    CurvatureSmoothing3DLoss,
     coeff2strain,
     strain2posdir,
     tensor2numpyVec,
@@ -29,15 +30,15 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-folder_name = "assets" # 'Data' # 
-test_data_name = "training_data_set_octopus.npy"
-model_name = 'data_smoothing_model_octopus_test.pt'
-if not os.path.exists(folder_name):
-    with resources.path(ASSETS, MODEL_NAME) as path:
-        model = torch.load(path)
-    test_data = data
-    print('No user trained model. Evalulating developer\'s trained model...')
-else:
+user_data_flag = True # False # 
+
+if user_data_flag:
+    folder_name = "assets" # 'Data' # 
+    test_data_name = "training_data_set_octopus.npy"
+    # model_name = 'data_smoothing_model_octopus_test.pt'
+    model_name = 'data_smoothing_model_octopus_test' # _save'
+    idx = 1000
+    model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
@@ -45,6 +46,11 @@ else:
         test_data_file_path, allow_pickle="TRUE"
     ).item()
     print('Evalulating user\'s trained model...')
+else:
+    with resources.path(ASSETS, MODEL_NAME) as path:
+        model = torch.load(path)
+    test_data = data
+    print('No user trained model. Evalulating developer\'s trained model...')
 
 ## import rod parameters
 n_elem = data["model"]["n_elem"]
@@ -73,6 +79,8 @@ output_size = tensor_constants.output_size
 print("input_size:", input_size, "output_size:", output_size)
 net = CurvatureSmoothing3DNet(input_size, output_size)
 net.load_state_dict(model["model"])
+loss_fn = CurvatureSmoothing3DLoss(tensor_constants)
+loss_fn.load_state_dict(model['loss_fn'])
 losses, vlosses, test_loss = model["losses"]
 n_iter = int(len(losses) / len(vlosses))
 
@@ -116,12 +124,16 @@ idx_list = np.random.randint(
 # quit()
 
 net.eval()
+test_loss = []
 fig = plt.figure(1)
 ax = fig.add_subplot(111, projection="3d")
 fig2, axes = plt.subplots(ncols=3, nrows=2, sharex=True, figsize=(16, 5))
 for ii in range(len(idx_list)):
     i = idx_list[ii]
-    output = net(input_tensor[i])
+    with torch.no_grad():
+        output = net(input_tensor[i])
+        t_loss = loss_fn(output, input_tensor[i][None,:,:])
+        test_loss.append(t_loss)
     strain_output = coeff2strain(tensor2numpyVec(output), pca)
     [position_output, director_output] = strain2posdir(strain_output, dl)
     ax.plot(
@@ -158,5 +170,8 @@ for ii in range(len(idx_list)):
         axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
         axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
+
+test_loss = np.array(test_loss)
+print('test_loss:', test_loss, 'average:', test_loss.mean())
 
 plt.show()

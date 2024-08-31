@@ -18,8 +18,8 @@ def pos_dir_to_input(pos: np.ndarray, dir: np.ndarray) -> np.ndarray:
     # input_dir : np.ndarray = dir.reshape(len(dir), -1, dir.shape[-1])
     # inputs : np.ndarray = np.hstack([pos, input_dir])
     inputs: np.ndarray = np.hstack(
-        [pos, dir[:, :, 0, :], dir[:, :, -1, :]]
-    )  # only take d1 and d3 for dir
+        [pos, dir[:, 0, :, :], dir[:, -1, :, :]]
+    )  # only take d1 and d3 for dir (row vectors)
     return inputs
 
 
@@ -200,7 +200,7 @@ def forward_path_torch(dl, shear, kappa):
     Rotation = get_rotation_matrix_torch(kappa * _aver(dl))
     for i in range(dl.shape[0] - 1):
         directors.append(
-            torch.einsum("nij,njk->nik", directors[-1], Rotation[..., i])
+            torch.einsum("nji,njk->nik", Rotation[..., i], directors[-1]) # R.T@Q where Q is row-vector-based
         )
     directors = torch.stack(directors, axis=-1)
     positions = integrate_for_position(directors, shear * dl)

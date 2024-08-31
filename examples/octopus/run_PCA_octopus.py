@@ -30,7 +30,7 @@ def main():
     nominal_shear = data["model"]["nominal_shear"]
     
     ## data point setup
-    n_data_pts = 9  # 5 # exlude the initial point at base
+    n_data_pts = 8  # 5 # exlude the initial point at base
     idx_data_pts = np.array(
         [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
     )
@@ -48,7 +48,7 @@ def main():
     true_kappa = data["true_kappa"]
     true_shear = data['true_shear']
 
-    n_components = np.array([3, 3, 3, 3, 3, 3])
+    n_components = np.array([10 for i in range(6)])
     pca_list = []
     for i in range(len(n_components)):
         pca = PCA(n_components=n_components[i])

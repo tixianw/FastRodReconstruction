@@ -39,8 +39,8 @@ class TensorConstants:
         self.dl = torch.from_numpy(dl).float()
         nominal_shear = np.vstack([np.zeros([2, 100]), np.ones(100)])
         self.nominal_shear = torch.from_numpy(nominal_shear).float()
-        self.chi_r = chi_r
-        self.chi_d = chi_d
+        self.chi_r = torch.from_numpy(chi_r).float() # chi_r
+        self.chi_d = torch.from_numpy(chi_d).float() # chi_d
         num_strain = len(pca)
         pca_mean = [np.vstack([pca[i].mean for i in range(3)]), 
                     np.vstack([pca[i+3].mean for i in range(3)])]
@@ -116,12 +116,12 @@ class CurvatureSmoothing3DLoss(nn.Module):
         )
         # inputs = torch.flatten(inputs, start_dim=1)
         pos_dir = coeff2posdir_torch(outputs, self.tensor_constants)
-        pos_difference = torch.flatten(input_pos - pos_dir[0], start_dim=1)
-        dir_difference = torch.flatten(input_dir - pos_dir[1], start_dim=1)
-        Phi = 0.5 * self.tensor_constants.chi_r * torch.sum(
-            pos_difference * pos_difference, axis=1
-        ) + 0.5 * self.tensor_constants.chi_d * torch.sum(
-            dir_difference * dir_difference, axis=1
+        pos_difference = input_pos - pos_dir[0] #  torch.flatten(input_pos - pos_dir[0], start_dim=1)
+        dir_difference = input_dir - pos_dir[1] # torch.flatten(input_dir - pos_dir[1], start_dim=1)
+        Phi = 0.5 * torch.sum(
+            pos_difference * pos_difference * self.tensor_constants.chi_r, axis=(1,2)
+        ) + 0.5 * torch.sum(
+            dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
         )
         return Phi.mean()
 
@@ -147,11 +147,11 @@ class CurvatureSmoothing3DNet(nn.Module):
             nn.SiLU()
         )  # nn.ReLU() # nn.GELU() # convergence speed: GELU > SiLU > ReLU
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(input_size, 64),
+            nn.Linear(input_size, 128),
             self.activation,
-            nn.Linear(64, 32),
+            nn.Linear(128, 64),
             self.activation,
-            nn.Linear(32, output_size),
+            nn.Linear(64, output_size),
         )
 
     def forward(self, x):
@@ -245,7 +245,7 @@ class CurvatureSmoothing3DModel:
                 running_loss = 0.0
                 self.train_losses.append(last_loss)
 
-    def model_train(self):
+    def model_train(self, file_name, check_epoch_idx=10):
         for epoch_idx in range(self.num_epochs):
             ## Make sure gradient tracking is on, and do a pass over the data
             self.net.train(True)
@@ -266,21 +266,26 @@ class CurvatureSmoothing3DModel:
                 f"Losses: train {self.train_losses[-1]:.8f} valid {avg_vloss:.8f}"
             )
 
-        self.test_loss = 0.0
-        for i, test_inputs in enumerate(self.test_loader):
-            test_outputs = self.net(test_inputs)
-            t_loss = self.loss_fn(test_outputs, test_inputs)
-            self.test_loss += t_loss.item()
-        self.test_loss /= i + 1
-        print(f"test loss: {self.test_loss:.8f}")
+            if (epoch_idx+1)%check_epoch_idx==0 or ((epoch_idx+1)%check_epoch_idx and epoch_idx==self.num_epochs-1):
 
-    def model_save(self, file_name):
+                self.test_loss = 0.0
+                with torch.no_grad():
+                    for i, test_inputs in enumerate(self.test_loader):
+                        test_outputs = self.net(test_inputs)
+                        t_loss = self.loss_fn(test_outputs, test_inputs)
+                        self.test_loss += t_loss.item()
+                    self.test_loss /= i + 1
+                print(f"test loss at epoch {epoch_idx+1:d}: {self.test_loss:.8f}")
+                self.model_save(file_name, epoch_idx)
+
+    def model_save(self, file_name, epoch_idx):
         torch.save(
             {
                 "batch_size": self.batch_size,
                 "num_epochs": self.num_epochs,
                 "tensor_constants": self.tensor_constants,
                 "model": self.net.state_dict(),
+                'loss_fn': self.loss_fn.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
                 "losses": [
                     self.train_losses,
@@ -288,7 +293,7 @@ class CurvatureSmoothing3DModel:
                     self.test_loss,
                 ],
             },
-            file_name,
+            file_name+'_epoch%03d'%(epoch_idx+1)+'.pt',
         )
 
 

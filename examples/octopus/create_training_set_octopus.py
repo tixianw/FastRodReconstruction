@@ -63,7 +63,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e4)
+	n_training_data = int(1e5)
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -123,7 +123,7 @@ def main():
 			axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
 			axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
-	flag_save = 0
+	flag_save = 1
 
 	if flag_save:
 		import os
