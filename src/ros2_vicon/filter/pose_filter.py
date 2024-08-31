@@ -50,6 +50,10 @@ def rotation_matrix(skew_symmetric_matrix: np.ndarray) -> np.ndarray:
     return rotation_matrix
 
 
+def skew_symmetric_projection(matrix: np.ndarray) -> np.ndarray:
+    return 0.5 * (matrix - np.transpose(matrix, (1, 0, 2)))
+
+
 class PoseFilter:
     def __init__(
         self,
@@ -74,7 +78,7 @@ class PoseFilter:
         self.update_position(pose[:3, 3])
 
     def update_director(self, director: np.ndarray) -> None:
-        director_error = self.skew_symmetric_projection(
+        director_error = skew_symmetric_projection(
             np.einsum(
                 "jin, jkn -> ikn",
                 self.__filtered_pose[:3, :3],
@@ -104,6 +108,3 @@ class PoseFilter:
     @property
     def pose(self) -> np.ndarray:
         return self.__filtered_pose
-
-    def skew_symmetric_projection(self, matrix: np.ndarray) -> np.ndarray:
-        return 0.5 * (matrix - np.transpose(matrix, (1, 0, 2)))
