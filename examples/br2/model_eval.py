@@ -13,6 +13,7 @@ import torch
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
+    CurvatureSmoothing3DLoss,
     coeff2strain,
     strain2posdir,
     tensor2numpyVec,
@@ -25,12 +26,15 @@ np.random.seed(2024)
 with resources.path(ASSETS, FILE_NAME_BR2) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-user_data_flag = False # True # 
+user_data_flag = True # False # 
 
 if user_data_flag:
     folder_name = 'assets' 
     test_data_name = "training_data_set_br2.npy"
-    model_name = 'data_smoothing_model_br2_test2.pt'
+    # model_name = 'data_smoothing_model_br2_bending.pt'
+    model_name = 'data_smoothing_model_br2_test' # _save'
+    idx = 100
+    model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
@@ -69,6 +73,8 @@ input_size = tensor_constants.input_size
 output_size = tensor_constants.output_size
 net = CurvatureSmoothing3DNet(input_size, output_size)
 net.load_state_dict(model["model"])
+# loss_fn = CurvatureSmoothing3DLoss(tensor_constants)
+# loss_fn.load_state_dict(model['loss_fn'])
 losses, vlosses, test_loss = model["losses"]
 n_iter = int(len(losses) / len(vlosses))
 
@@ -110,16 +116,20 @@ idx_list = np.random.randint(
 # print((stop-start), 1e5/(stop-start))
 
 net.eval()
+test_loss = []
 fig = plt.figure(1)
 ax = fig.add_subplot(111, projection="3d")
 fig2, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
 for ii in range(len(idx_list)):
     i = idx_list[ii]
-    output = net(input_tensor[i])
-    kappa_output = coeff2strain(tensor2numpyVec(output), pca)
-    [position_output, director_output] = strain2posdir(
-        kappa_output, dl, nominal_shear
-    )
+    with torch.no_grad():
+        output = net(input_tensor[i])
+        # t_loss = loss_fn(output, input_tensor[i][None,:,:])
+        # test_loss.append(t_loss)
+        kappa_output = coeff2strain(tensor2numpyVec(output), pca)
+        [position_output, director_output] = strain2posdir(
+            kappa_output, dl, nominal_shear
+        )
     ax.plot(
         position_output[0, 0, :],
         position_output[0, 1, :],
@@ -151,6 +161,9 @@ for ii in range(len(idx_list)):
     for j in range(3):
         axes[j].plot(s[1:-1], kappa_output[0, j, :], color=color[ii], ls="-")
         axes[j].plot(s[1:-1], true_kappa[i, j, :], color=color[ii], ls="--")
+
+# test_loss = np.array(test_loss)
+# print('test_loss:', test_loss, 'average:', test_loss.mean())
 
 
 plt.show()
