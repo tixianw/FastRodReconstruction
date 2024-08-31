@@ -67,8 +67,8 @@ def main():
         [E, E, 2 * G]
     )[..., None]
 
-    power_chi_r = np.array([5, 6]) # 6 # 5 # 4 # 3
-    power_chi_d = np.array([3, 4]) # 5 # 6
+    power_chi_r = np.array([6, 6]) # 6 # 5 # 4 # 3
+    power_chi_d = np.array([2, 2]) # 5 # 6
     chi_r = 10**power_chi_r  # 1
     chi_d = 10**power_chi_d
     chi_u = 0  # 1e-5
@@ -106,7 +106,7 @@ def main():
     )
 
     model_name = "/data_smoothing_model_br2_test"
-    model.model_train(file_name=folder_name+model_name, check_epoch_idx=10)
+    model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
     # flag_save = True
 
