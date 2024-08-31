@@ -51,7 +51,7 @@ def main():
         pca.fit(true_kappa[:, i, :])
         pca_list.append(pca)
 
-    flag_save = 0
+    flag_save = 1
 
     if flag_save:
         import os
