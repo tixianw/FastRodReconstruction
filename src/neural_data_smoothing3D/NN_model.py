@@ -244,9 +244,8 @@ class CurvatureSmoothing3DModel:
                     voutputs = self.net(vinputs)
                     vloss = self.loss_fn(voutputs, vinputs)
                     running_vloss += vloss.item()
-
-            avg_vloss = running_vloss / (i + 1)
-            self.validation_losses.append(avg_vloss)
+                avg_vloss = running_vloss / (i + 1)
+                self.validation_losses.append(avg_vloss)
             print(
                 f"Losses: train {self.train_losses[-1]:.8f} valid {avg_vloss:.8f}"
             )
@@ -254,12 +253,13 @@ class CurvatureSmoothing3DModel:
             if (epoch_idx+1)%check_epoch_idx==0 or ((epoch_idx+1)%check_epoch_idx and epoch_idx==self.num_epochs-1):
 
                 self.test_loss = 0.0
-                for i, test_inputs in enumerate(self.test_loader):
-                    test_outputs = self.net(test_inputs)
-                    t_loss = self.loss_fn(test_outputs, test_inputs)
-                    self.test_loss += t_loss.item()
-                self.test_loss /= i + 1
-                print(f"test loss at epoch {epoch_idx:d}: {self.test_loss:.8f}")
+                with torch.no_grad():
+                    for i, test_inputs in enumerate(self.test_loader):
+                        test_outputs = self.net(test_inputs)
+                        t_loss = self.loss_fn(test_outputs, test_inputs)
+                        self.test_loss += t_loss.item()
+                    self.test_loss /= i + 1
+                print(f"test loss at epoch {epoch_idx+1:d}: {self.test_loss:.8f}")
                 self.model_save(file_name, epoch_idx)
 
     def model_save(self, file_name, epoch_idx):
@@ -270,6 +270,7 @@ class CurvatureSmoothing3DModel:
                 'current_epoch': epoch_idx,
                 "tensor_constants": self.tensor_constants,
                 "model": self.net.state_dict(),
+                'loss_fn': self.loss_fn.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
                 "losses": [
                     self.train_losses,
