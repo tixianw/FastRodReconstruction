@@ -29,10 +29,10 @@ def main():
     
     ## data point setup
     n_data_pts = 2  # 5 # exlude the initial point at base
-    # idx_data_pts = np.array(
-    #     [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
-    # )
-    idx_data_pts = np.array([57, -1])
+    idx_data_pts = np.array(
+        [int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
+    )
+    # idx_data_pts = np.array([57, -1])
     print("idx of s_j's:", idx_data_pts)
 
     position = data["true_pos"]

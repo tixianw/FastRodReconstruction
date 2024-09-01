@@ -56,7 +56,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e5) # 1e5
+	n_training_data = int(1e4) # 1e5
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -77,18 +77,18 @@ def main():
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
-	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level_p=0.02, noise_level_d=0.05, L=L) ## 1 degree is 0.01 level_d
+	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level_p=0.02, noise_level_d=0.02, L=L) ## 1 degree is 0.01 level_d
 	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
 	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
 	# quit()
 
-	data_exp = read_data_from_file(
-		file_path="experiment.h5",
-		start_index=1100,
-		end_index=2300,
-	)
-	input_data = np.vstack([input_data, data_exp])
+	# data_exp = read_data_from_file(
+	# 	file_path="experiment.h5",
+	# 	start_index=1100,
+	# 	end_index=2300,
+	# )
+	# input_data = np.vstack([input_data, data_exp])
 
 	idx_list = np.random.randint(
 		n_training_data, size=10
@@ -144,7 +144,7 @@ def main():
 			"true_kappa": strain_rand,
 			"true_shear": nominal_shear,
 		}
-		np.save(folder_name + "/training_data_set_br2_exp.npy", training_data)
+		np.save(folder_name + "/training_data_set_br2.npy", training_data)
 	
 	plt.show()
 

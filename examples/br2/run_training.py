@@ -19,7 +19,7 @@ from neural_data_smoothing3D.utils import _aver
 def main():
 
     folder_name = "assets"
-    training_data_name = "training_data_set_br2_exp.npy"
+    training_data_name = "training_data_set_br2.npy" # _exp2
     if not os.path.exists(folder_name):
         raise FileNotFoundError("Run create_training_set.py first")
 
@@ -42,6 +42,7 @@ def main():
     s = data["model"]["s"]
     dl = data["model"]["dl"]
     nominal_shear = data["model"]["nominal_shear"]
+    n_data_pts = data['n_data_pts']
     idx_data_pts = data["idx_data_pts"]
     # input_data = data["input_data"]
     # true_pos = data["true_pos"]
@@ -67,8 +68,8 @@ def main():
         [E, E, 2 * G]
     )[..., None]
 
-    power_chi_r = np.array([5, 5]) # 6 # 5 # 4 # 3
-    power_chi_d = np.array([5, 5]) # 5 # 6
+    power_chi_r = np.ones(n_data_pts) * 5 # 6 # 5 # 4 # 3
+    power_chi_d = np.ones(n_data_pts) * 5 # 5 # 6
     chi_r = 10**power_chi_r  # 1
     chi_d = 10**power_chi_d
     chi_u = 0  # 1e-5
@@ -105,7 +106,7 @@ def main():
         labels=true_kappa,
     )
 
-    model_name = "/data_smoothing_model_br2_test1"
+    model_name = "/data_smoothing_model_br2_test_3markers"
     model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
     # flag_save = True

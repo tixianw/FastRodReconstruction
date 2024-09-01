@@ -20,7 +20,7 @@ from neural_data_smoothing3D import (
 )
 
 color = ["C" + str(i) for i in range(10)]
-np.random.seed(2024)
+# np.random.seed(2024)
 
 ## import rod parameters
 with resources.path(ASSETS, FILE_NAME_BR2) as path:
@@ -30,9 +30,9 @@ user_data_flag = True # False #
 
 if user_data_flag:
     folder_name = 'assets' 
-    test_data_name = "training_data_set_br2.npy"
+    test_data_name = "training_data_set_br2.npy" # _exp2
     # model_name = 'data_smoothing_model_br2_bending.pt'
-    model_name = 'data_smoothing_model_br2_test1' # _save'
+    model_name = 'data_smoothing_model_br2_test_3markers' # _save'
     idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
@@ -74,8 +74,8 @@ input_size = tensor_constants.input_size
 output_size = tensor_constants.output_size
 net = CurvatureSmoothing3DNet(input_size, output_size)
 net.load_state_dict(model["model"])
-# loss_fn = CurvatureSmoothing3DLoss(tensor_constants)
-# loss_fn.load_state_dict(model['loss_fn'])
+loss_fn = CurvatureSmoothing3DLoss(tensor_constants)
+loss_fn.load_state_dict(model['loss_fn'])
 losses, vlosses, test_loss = model["losses"]
 n_iter = int(len(losses) / len(vlosses))
 
@@ -102,6 +102,7 @@ plt.legend()
 
 # print(input_data.shape, true_kappa.shape, true_pos.shape)
 input_tensor = torch.from_numpy(input_data).float()
+# np.random.seed()
 idx_list = np.random.randint(
     len(input_data), size=10
 )  # [i*10 for i in range(6)]
@@ -125,8 +126,8 @@ for ii in range(len(idx_list)):
     i = idx_list[ii]
     with torch.no_grad():
         output = net(input_tensor[i])
-        # t_loss = loss_fn(output, input_tensor[i][None,:,:])
-        # test_loss.append(t_loss)
+        t_loss = loss_fn(output, input_tensor[i][None,:,:])
+        test_loss.append(t_loss)
         kappa_output = coeff2strain(tensor2numpyVec(output), pca)
         [position_output, director_output] = strain2posdir(
             kappa_output, dl, nominal_shear
@@ -163,8 +164,8 @@ for ii in range(len(idx_list)):
         axes[j].plot(s[1:-1], kappa_output[0, j, :], color=color[ii], ls="-")
         axes[j].plot(s[1:-1], true_kappa[i, j, :], color=color[ii], ls="--")
 
-# test_loss = np.array(test_loss)
-# print('test_loss:', test_loss, 'average:', test_loss.mean())
+test_loss = np.array(test_loss)
+print('test_loss:', test_loss, 'average:', test_loss.mean())
 
 
 plt.show()
