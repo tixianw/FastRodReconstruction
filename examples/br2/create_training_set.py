@@ -11,6 +11,7 @@ import numpy.random as npr
 
 from assets import ASSETS, FILE_NAME_BR2
 from neural_data_smoothing3D import coeff2posdir, coeff2strain, pos_dir_to_noisy_input
+from read_h5_data import read_data_from_file
 
 color = ["C" + str(i) for i in range(20)]
 
@@ -82,6 +83,13 @@ def main():
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
 	# quit()
 
+	data_exp = read_data_from_file(
+		file_path="experiment.h5",
+		start_index=1100,
+		end_index=2300,
+	)
+	input_data = np.vstack([input_data, data_exp])
+
 	idx_list = np.random.randint(
 		n_training_data, size=10
 	)  # [i*250 for i in range(10)]
@@ -136,7 +144,7 @@ def main():
 			"true_kappa": strain_rand,
 			"true_shear": nominal_shear,
 		}
-		np.save(folder_name + "/training_data_set_br2.npy", training_data)
+		np.save(folder_name + "/training_data_set_br2_exp.npy", training_data)
 	
 	plt.show()
 
