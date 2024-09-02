@@ -144,6 +144,11 @@ class ReconstructionNode(LoggerNode):
             qos_profile=100,
         )
 
+        self.step_dict = {
+            "reconstruction": self.reconstruction_step,
+        }
+        self.step_stage = "reconstruction"
+
         self.ready()
         self.time = time.time()
 
@@ -180,12 +185,7 @@ class ReconstructionNode(LoggerNode):
         return subscriber_callback
 
     def timer_callback(self) -> bool:
-        if not self.new_message:
-            return False
-        self.reconstruct()
-        self.new_message = False
-        self.publish_messages()
-        return True
+        return self.step_dict[self.step_stage]()
 
     def create_pose(self) -> None:
         # Create pose from the subscribers
@@ -216,6 +216,14 @@ class ReconstructionNode(LoggerNode):
             pos=self.input_[:, :3, 3, :],
             dir=self.input_[:, :3, :3, :],
         )
+
+    def reconstruction_step(self) -> bool:
+        if not self.new_message:
+            return False
+        self.reconstruct()
+        self.new_message = False
+        self.publish_messages()
+        return True
 
     def reconstruct(self) -> None:
         self.log_debug(f"Reconstructing...")
