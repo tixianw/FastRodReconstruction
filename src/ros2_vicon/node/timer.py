@@ -74,7 +74,7 @@ class Timer:
             )
         return info
 
-    def __callback_with_publish(self) -> bool:
+    def __callback_with_publish(self) -> None:
         """
         Callback function with publishing the current time.
         """
@@ -83,14 +83,12 @@ class Timer:
                 self.__time.from_numpy_ndarray(data=self.time).to_message()
             )
             self.node.log_debug(f"{self}")
-            return True
-        return False
 
     def __callback_without_publish(self) -> bool:
         """
         Callback function without publishing the current time.
         """
-        return self.callback()
+        self.callback()
 
     def get_clock(self) -> float:
         """
