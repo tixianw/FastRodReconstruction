@@ -84,7 +84,7 @@ class Timer:
             )
             self.node.log_debug(f"{self}")
 
-    def __callback_without_publish(self) -> bool:
+    def __callback_without_publish(self) -> None:
         """
         Callback function without publishing the current time.
         """
