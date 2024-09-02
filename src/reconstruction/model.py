@@ -46,7 +46,7 @@ class ReconstructionModel:
 
         self.__base_pose = fixed_base_pose.copy()
         self.__fixed_base_pose = fixed_base_pose.copy()
-        self.__bending_rotation_matrix = np.eye(3)
+        self.__transformation_offset = np.eye(4)
 
         # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
         # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
@@ -94,9 +94,9 @@ class ReconstructionModel:
     def set_base_pose(self, base_pose: np.ndarray) -> None:
         self.__base_pose = base_pose.copy()
 
-    def set_rotation_angle_degree(self, angle: float):
+    def set_rotation_offset(self, angle: float):
         angle = np.deg2rad(angle)
-        self.__bending_rotation_matrix = np.array(
+        self.__transformation_offset[:3, :3] = np.array(
             [
                 [np.cos(angle), -np.sin(angle), 0],
                 [np.sin(angle), np.cos(angle), 0],
@@ -104,35 +104,38 @@ class ReconstructionModel:
             ]
         )
 
+    def set_translation_offset(self, translation_offset: np.ndarray):
+        self.__transformation_offset[:3, 3] = translation_offset.copy()
+
     @property
-    def alignment_matrix(self) -> np.ndarray:
-        return self.__bending_rotation_matrix.copy()
+    def transformation_offset(self) -> np.ndarray:
+        return self.__transformation_offset
 
-    def remove_base_translation(
-        self, marker_position: np.ndarray
-    ) -> np.ndarray:
-        updated_marker_position = marker_position.copy()
-        for i in range(marker_position.shape[0]):
-            for j in range(marker_position.shape[2]):
-                updated_marker_position[i, :, j] = (
-                    self.__bending_rotation_matrix
-                    @ (marker_position[i, :, j] - self.__base_pose[:3, 3])
-                )
-        return updated_marker_position
+    # def remove_base_translation(
+    #     self, marker_position: np.ndarray
+    # ) -> np.ndarray:
+    #     updated_marker_position = marker_position.copy()
+    #     for i in range(marker_position.shape[0]):
+    #         for j in range(marker_position.shape[2]):
+    #             updated_marker_position[i, :, j] = (
+    #                 self.__rotation_offset
+    #                 @ (marker_position[i, :, j] - self.__base_pose[:3, 3])
+    #             )
+    #     return updated_marker_position
 
-    def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
-        update_maker_directors = marker_directors.copy()
-        rotation_matrix = (
-            self.__bending_rotation_matrix @ self.__base_pose[:3, :3]
-        ).T @ self.__fixed_base_pose[:3, :3]
-        for i in range(marker_directors.shape[0]):
-            for j in range(marker_directors.shape[3]):
-                update_maker_directors[i, :, :, j] = (
-                    self.__bending_rotation_matrix
-                    @ marker_directors[i, :, :, j]
-                    @ rotation_matrix
-                ).T
-        return update_maker_directors
+    # def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
+    #     update_maker_directors = marker_directors.copy()
+    #     rotation_matrix = (
+    #         self.__rotation_offset @ self.__base_pose[:3, :3]
+    #     ).T @ self.__fixed_base_pose[:3, :3]
+    #     for i in range(marker_directors.shape[0]):
+    #         for j in range(marker_directors.shape[3]):
+    #             update_maker_directors[i, :, :, j] = (
+    #                 self.__rotation_offset
+    #                 @ marker_directors[i, :, :, j]
+    #                 @ rotation_matrix
+    #             ).T
+    #     return update_maker_directors
 
     def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
         if marker_pose.ndim == 3:
@@ -144,19 +147,45 @@ class ReconstructionModel:
         batch_size = marker_pose.shape[0]
         number_of_markers = marker_pose.shape[3]
 
-        translation_offset = -self.__base_pose[:3, 3]
-        rotation_offset = (
-            self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
-        )
+        # translation_offset = -self.__base_pose[:3, 3]
+        # rotation_offset = (
+        #     self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
+        # )
 
         for b in range(batch_size):
+
+            translation_offset = -marker_pose[b, :3, 3, 0]
+            rotation_offset = (
+                self.__fixed_base_pose[:3, :3] @ marker_pose[b, :3, :3, 0].T
+            )
+
             for i in range(number_of_markers):
-                updated_marker_pose[b, :3, 3, i] = self.alignment_matrix @ (
-                    translation_offset + marker_pose[b, :3, 3, i]
-                )
+                updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[
+                    :3, :3
+                ] @ (translation_offset + marker_pose[b, :3, 3, i])
                 updated_marker_pose[b, :3, :3, i] = (
                     rotation_offset @ marker_pose[b, :3, :3, i]
                 )
+                updated_marker_pose[b, :3, 3, i] = updated_marker_pose[
+                    b, :3, 3, i
+                ] + (
+                    updated_marker_pose[b, :3, :3, i]
+                    @ self.__transformation_offset[:3, 3]
+                    - updated_marker_pose[b, :3, :3, 0]
+                    @ self.__transformation_offset[:3, 3]
+                )
+
+            # for i in range(number_of_markers):
+            #     updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[:3, :3] @ (
+            #         translation_offset + marker_pose[b, :3, 3, i]
+            #     )
+            #     updated_marker_pose[b, :3, :3, i] = (
+            #         rotation_offset @ marker_pose[b, :3, :3, i]
+            #     )
+            #     updated_marker_pose[b, :3, 3, i] = updated_marker_pose[b, :3, 3, i] + (
+            #         updated_marker_pose[b, :3, :3, i] @ self.__transformation_offset[:3, 3] -
+            #         self.__base_pose[:3, :3] @ self.__transformation_offset[:3, 3]
+            #     )
 
         # Remove offset
         # for i in range(marker_pose.shape[0]):

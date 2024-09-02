@@ -166,11 +166,11 @@ def main(
                 axis_labels=("time",),
             ),
         ),
-        "rotation_matrix": SubscriptionInfo(
-            topic="/reconstruction/initial_parameters/rotation_matrix",
+        "transformation_offset": SubscriptionInfo(
+            topic="/reconstruction/initial_parameters/transformation_offset",
             message=NDArrayMessage(
-                shape=(3, 3),
-                axis_labels=("rotation_matrix", ""),
+                shape=(4, 4),
+                axis_labels=("transformation_offset", ""),
             ),
         ),
         "pose": SubscriptionInfo(
