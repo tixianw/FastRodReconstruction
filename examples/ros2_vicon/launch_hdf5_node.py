@@ -187,6 +187,13 @@ def main(
                 axis_labels=("marker",),
             ),
         ),
+        "calibrated_pose": SubscriptionInfo(
+            topic="/reconstruction/calibrated_pose",
+            message=PoseMessage(
+                shape=(number_of_markers,),
+                axis_labels=("marker",),
+            ),
+        ),
         "input": SubscriptionInfo(
             topic="/reconstruction/input",
             message=NDArrayMessage(

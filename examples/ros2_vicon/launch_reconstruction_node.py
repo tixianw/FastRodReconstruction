@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import click
@@ -16,7 +17,7 @@ from ros2_vicon import (
     ViconPoseSubscriber,
 )
 from ros2_vicon.filter import PoseFilter
-from ros2_vicon.node import LoggerNode
+from ros2_vicon.node import StageNode
 
 
 @dataclass
@@ -27,7 +28,7 @@ class ReconstructionModelResource:
     translation_offset: np.ndarray = np.array([0.0, 0.0, 0.0])
 
 
-class ReconstructionNode(LoggerNode):
+class ReconstructionNode(StageNode):
     def __init__(
         self,
         subscription_topics: Tuple[str],
@@ -38,6 +39,11 @@ class ReconstructionNode(LoggerNode):
         super().__init__(
             node_name="reconstruction_node",
             log_level=log_level,
+            ordered_stages=OrderedDict(
+                filter_transition=self.stage_filter_transition,
+                calibration=self.stage_calibration,
+                reconstruction=self.stage_reconstruction,
+            ),
         )
 
         self.subscription_topics = subscription_topics
@@ -104,6 +110,13 @@ class ReconstructionNode(LoggerNode):
                 qos_profile=100,
                 node=self,
             ),
+            "calibrated_pose": PosePublisher(
+                topic="/reconstruction/calibrated_pose",
+                length=self.number_of_markers,
+                label="marker",
+                qos_profile=100,
+                node=self,
+            ),
             "input": NDArrayPublisher(
                 topic="/reconstruction/input",
                 shape=self.input_.shape[1:],
@@ -144,11 +157,6 @@ class ReconstructionNode(LoggerNode):
             qos_profile=100,
         )
 
-        self.step_dict = {
-            "reconstruction": self.reconstruction_step,
-        }
-        self.step_stage = "reconstruction"
-
         self.ready()
         self.time = time.time()
 
@@ -163,10 +171,6 @@ class ReconstructionNode(LoggerNode):
         for i in range(self.number_of_markers - 1):
             self.input_[0, :3, :3, i] = np.diag([1, -1, -1])
         self.new_message = False
-
-    @property
-    def result(self) -> ReconstructionResult:
-        return self.model.result
 
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
@@ -184,18 +188,40 @@ class ReconstructionNode(LoggerNode):
 
         return subscriber_callback
 
-    def timer_callback(self) -> bool:
-        return self.step_dict[self.step_stage]()
-
     def create_pose(self) -> None:
         # Create pose from the subscribers
         for i, subscriber in enumerate(self.__subscribers):
             self.pose[:3, 3, i] = subscriber.message.position.copy()
             self.pose[:3, :3, i] = subscriber.message.directors.copy()
 
+    def timer_callback(self) -> bool:
+        if not self.new_message:
+            return False
+        self.create_pose()
+        self.filter.update(self.pose)
+        self.new_message = False
+        return self.stage()
+
+    def stage_filter_transition(self) -> bool:
+        if time.time() - self.time > 2:
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_calibration(self) -> bool:
+        if self.model.process_calibration(self.filter.pose):
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_reconstruction(self) -> bool:
+        self.model.calibrate_pose(self.filter.pose)
+        self.reconstruct()
+        self.publish_messages()
+        return self.timer.PUBLISH_TIME.TRUE
+
     def create_input(self) -> np.ndarray:
         # pose = self.pose
-        pose = self.filter.pose
+        # pose = self.filter.pose
+        pose = self.model.calibrated_pose
 
         # Create input from pose
 
@@ -217,20 +243,9 @@ class ReconstructionNode(LoggerNode):
             dir=self.input_[:, :3, :3, :],
         )
 
-    def reconstruction_step(self) -> bool:
-        if not self.new_message:
-            return False
-        self.reconstruct()
-        self.new_message = False
-        self.publish_messages()
-        return True
-
     def reconstruct(self) -> None:
         self.log_debug(f"Reconstructing...")
-        self.create_pose()
-        self.filter.update(self.pose)
         self.model(self.create_input())
-
         new_time = time.time()
         self.log_info(
             f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
@@ -241,10 +256,11 @@ class ReconstructionNode(LoggerNode):
         self.publish("pose", self.pose)
         self.publish("filtered_pose", self.filter.pose)
         self.publish("transformation_offset", self.model.transformation_offset)
+        self.publish("calibrated_pose", self.model.calibrated_pose)
         self.publish("input", self.input_[0])
-        self.publish("position", self.result.position)
-        self.publish("directors", self.result.directors)
-        self.publish("kappa", self.result.kappa)
+        self.publish("position", self.model.result.position)
+        self.publish("directors", self.model.result.directors)
+        self.publish("kappa", self.model.result.kappa)
 
     def publish(
         self,
@@ -303,6 +319,7 @@ def main(log_level: str, source: str):
         model_resource=ReconstructionModelResource(
             rotation_offset=-155.0,
             translation_offset=np.array([-0.02, -0.03, 0.0]),
+            # translation_offset=np.array([0.0, 0.0, 0.0]),
         ),
     )
     try:

@@ -217,3 +217,36 @@ class ReconstructionModel:
         #             rotation_matrix @ updated_marker_pose[i, :3, 3, j]
         #         )
         return updated_marker_pose
+
+    def process_calibration(self, marker_pose: np.ndarray) -> bool:
+        number_of_markers = marker_pose.shape[2]
+        position_offset = np.zeros((3, number_of_markers))
+        for i in range(number_of_markers):
+            position_offset[:2, i] = (
+                marker_pose[:2, 3, i] - marker_pose[:2, 3, 0]
+            )
+            position_offset[:, i] = (
+                marker_pose[:3, :3, i].T @ position_offset[:, i]
+            )
+            position_offset[2, i] = 0
+            print(marker_pose[:3, :3, i])
+
+        if hasattr(self, "position_offset"):
+            if np.allclose(position_offset, self.position_offset, atol=1e-4):
+                print(self.position_offset[:, 1], position_offset[:, 2])
+                return True
+            else:
+                self.position_offset = position_offset
+                return False
+        else:
+            self.position_offset = position_offset
+        return False
+
+    def calibrate_pose(self, marker_pose: np.ndarray) -> None:
+        self.calibrated_pose = marker_pose.copy()
+        number_of_markers = marker_pose.shape[2]
+        for i in range(number_of_markers):
+            self.calibrated_pose[:3, 3, i] = (
+                marker_pose[:3, 3, 0]
+                - marker_pose[:3, :3, i] @ self.position_offset[:, i]
+            )

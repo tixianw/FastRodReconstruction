@@ -1,6 +1,7 @@
-from typing import Union
+from typing import ClassVar, Union
 
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 
@@ -17,6 +18,10 @@ class Timer:
     topic: str = "/time"
     publish_flag: bool = False
     qos_profile: Union[QoSProfile, int] = 1
+
+    class PUBLISH_TIME(Enum):
+        TRUE = True
+        FALSE = False
 
     def __post_init__(self):
 
