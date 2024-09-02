@@ -182,21 +182,9 @@ class ReconstructionNode(LoggerNode):
     def timer_callback(self) -> bool:
         if not self.new_message:
             return False
-        new_time = time.time()
-        self.log_debug(f"Reconstructing...")
         self.reconstruct()
-        self.log_info(
-            f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
-        )
-        self.time = new_time
-        self.publish("pose", self.pose)
-        self.publish("filtered_pose", self.filter.pose)
-        self.publish("transformation_offset", self.model.transformation_offset)
-        self.publish("input", self.input_[0])
-        self.publish("position", self.result.position)
-        self.publish("directors", self.result.directors)
-        self.publish("kappa", self.result.kappa)
         self.new_message = False
+        self.publish_messages()
         return True
 
     def create_pose(self) -> None:
@@ -230,9 +218,25 @@ class ReconstructionNode(LoggerNode):
         )
 
     def reconstruct(self) -> None:
+        self.log_debug(f"Reconstructing...")
         self.create_pose()
         self.filter.update(self.pose)
         self.model(self.create_input())
+
+        new_time = time.time()
+        self.log_info(
+            f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
+        )
+        self.time = new_time
+
+    def publish_messages(self) -> None:
+        self.publish("pose", self.pose)
+        self.publish("filtered_pose", self.filter.pose)
+        self.publish("transformation_offset", self.model.transformation_offset)
+        self.publish("input", self.input_[0])
+        self.publish("position", self.result.position)
+        self.publish("directors", self.result.directors)
+        self.publish("kappa", self.result.kappa)
 
     def publish(
         self,
