@@ -25,16 +25,17 @@ def main():
 	
 	print('number of markers (excluding the base):', data['n_data_pts'])
 
-	n_elem = data["model"]["n_elem"]
+	# n_elem = data["model"]["n_elem"]
 	L = data["model"]["L"]
-	radius = data["model"]["radius"]
+	# radius = data["model"]["radius"]
 	s = data["model"]["s"]
 	s_mean = _aver(s)
 	dl = data["model"]["dl"]
+	# nominal_shear = data["model"]["nominal_shear"]
 	idx_data_pts = data["idx_data_pts"]
 	# input_data = data['input_data']
 	# true_pos = data['true_pos']
-	# true_dir = data['true_dir']
+	true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 	pca = data["pca"]
@@ -62,7 +63,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e5)
+	n_training_data = int(1e2)
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -83,7 +84,7 @@ def main():
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
-	input_data = pos_dir_to_input(input_pos, input_dir)
+	input_data = pos_dir_to_input(input_pos, input_dir, true_dir[0,...,0])
 	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
 	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
@@ -115,6 +116,9 @@ def main():
 		ax.set_xlim(-L, 0)
 		ax.set_ylim(-L, 0)
 		ax.set_zlim(-L, 0)
+		ax.set_xlabel('x')
+		ax.set_ylabel('y')
+		ax.set_zlabel('z')
 		ax.set_aspect("equal")
 		for j in range(3):
 			axes[0][j].plot(s[1:-1], strain_rand[0][i, j, :])
@@ -122,7 +126,7 @@ def main():
 			axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
 			axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
-	flag_save = 1
+	flag_save = 0
 
 	if flag_save:
 		import os
