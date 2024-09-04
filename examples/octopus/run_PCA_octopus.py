@@ -1,5 +1,5 @@
 """
-Created on Aug 25, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -46,13 +46,14 @@ def main():
 	input_pos = position[..., idx_data_pts]
 	input_dir = director[..., idx_data_pts]
 	input_data = pos_dir_to_input(input_pos, input_dir)
+	print('# of samples in small data set', len(input_data))
 
 	# true_pos = data['true_pos']
 	# true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 
-	n_components = np.array([10 for i in range(6)])
+	n_components = np.array([5 for i in range(6)])
 	pca_list = []
 	for i in range(len(n_components)):
 		pca = PCA(n_components=n_components[i])

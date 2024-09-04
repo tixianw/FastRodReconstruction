@@ -1,5 +1,5 @@
 """
-Created on Aug 18, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -191,12 +191,16 @@ def coeff2posdir_torch(coeff, tensor_constants):
 
 # @njit(cache=True)
 def forward_path_torch(dl, shear, kappa, dir0):
+    # print(dir0.shape, len(kappa))
     directors = [
-        torch.stack(
-            [dir0 for i in range(len(kappa))],
-            axis=0,
-        )
+        # torch.stack(
+        #     [dir0 for i in range(len(kappa))],
+        #     axis=0,
+        # )
+        dir0.repeat(len(kappa),1,1)
     ]
+    # print(directors[0].shape)
+    # quit()
     Rotation = get_rotation_matrix_torch(kappa * _aver(dl))
     for i in range(dl.shape[0] - 1):
         directors.append(

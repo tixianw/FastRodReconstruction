@@ -1,5 +1,5 @@
 """
-Created on Aug 21, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -63,7 +63,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e2)
+	n_training_data = int(1e5)
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -80,11 +80,11 @@ def main():
 
 	strain_rand = coeff2strain(coeffs_rand, pca)
 	# # print(strain_rand[0].shape, strain_rand[1].shape)
-	posdir_rand = coeff2posdir(coeffs_rand, pca, dl)
+	posdir_rand = coeff2posdir(coeffs_rand, pca, dl, true_dir[0,...,0])
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
-	input_data = pos_dir_to_input(input_pos, input_dir, true_dir[0,...,0])
+	input_data = pos_dir_to_input(input_pos, input_dir)
 	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
 	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
@@ -113,9 +113,9 @@ def main():
 			marker="o",
 			color=color[ii],
 		)
-		ax.set_xlim(-L, 0)
-		ax.set_ylim(-L, 0)
-		ax.set_zlim(-L, 0)
+		ax.set_xlim(0, L)
+		ax.set_ylim(0, L)
+		ax.set_zlim(0, L)
 		ax.set_xlabel('x')
 		ax.set_ylabel('y')
 		ax.set_zlabel('z')
@@ -126,7 +126,7 @@ def main():
 			axes[0][j].set_ylabel('$\\kappa_%d$'%(j+1))
 			axes[1][j].set_ylabel('$\\nu_%d$'%(j+1))
 
-	flag_save = 0
+	flag_save = 1
 
 	if flag_save:
 		import os
