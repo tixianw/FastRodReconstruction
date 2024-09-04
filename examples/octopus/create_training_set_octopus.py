@@ -31,7 +31,6 @@ def main():
 	s = data["model"]["s"]
 	s_mean = _aver(s)
 	dl = data["model"]["dl"]
-	nominal_shear = data["model"]["nominal_shear"]
 	idx_data_pts = data["idx_data_pts"]
 	# input_data = data['input_data']
 	# true_pos = data['true_pos']
