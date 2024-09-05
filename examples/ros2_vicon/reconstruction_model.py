@@ -39,7 +39,7 @@ def main():
     )
     print(marker_data.shape)
     # Create a new instance of the model
-    result = model(marker_data)
+    result = model.reconstruct(marker_data)
 
     print(result.position.shape, result.directors.shape, result.kappa.shape)
 

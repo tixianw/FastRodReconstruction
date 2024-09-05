@@ -1,5 +1,5 @@
 """
-Created on Aug 18, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -53,13 +53,13 @@ def coeff2strain(
 
 
 def strain2posdir(
-    strain, dl
+    strain, dl, dir0
 ):
     n_sample = len(strain[0])
     n_elem = len(dl)
     position = np.zeros([n_sample, 3, n_elem + 1])
     director = np.zeros([n_sample, 3, 3, n_elem])
-    director[:, :, :, 0] = np.diag([1, -1, -1])
+    director[:, :, :, 0] = dir0 # np.diag([1, -1, -1])
     for i in range(n_sample):
         forward_path(
             dl, strain[1][i], strain[0][i], position[i], director[i]
@@ -67,9 +67,9 @@ def strain2posdir(
     return [position, director]
 
 
-def coeff2posdir(coeff, pca, dl):
+def coeff2posdir(coeff, pca, dl, dir0):
     strain = coeff2strain(coeff, pca)
-    posdir = strain2posdir(strain, dl)
+    posdir = strain2posdir(strain, dl, dir0)
     return posdir
 
 
@@ -175,7 +175,7 @@ def coeff2strain_torch(coeff, tensor_constants):
 
 def strain2posdir_torch(strain, tensor_constants):
     pos_dir = forward_path_torch(
-        tensor_constants.dl, strain[1], strain[0]
+        tensor_constants.dl, strain[1], strain[0], tensor_constants.dir0
     )
     return [
         pos_dir[0][..., tensor_constants.idx_data_pts],
@@ -190,13 +190,17 @@ def coeff2posdir_torch(coeff, tensor_constants):
 
 
 # @njit(cache=True)
-def forward_path_torch(dl, shear, kappa):
+def forward_path_torch(dl, shear, kappa, dir0):
+    # print(dir0.shape, len(kappa))
     directors = [
-        torch.stack(
-            [torch.diag(torch.Tensor([1, -1, -1])) for i in range(len(kappa))],
-            axis=0,
-        )
+        # torch.stack(
+        #     [dir0 for i in range(len(kappa))],
+        #     axis=0,
+        # )
+        dir0.repeat(len(kappa),1,1)
     ]
+    # print(directors[0].shape)
+    # quit()
     Rotation = get_rotation_matrix_torch(kappa * _aver(dl))
     for i in range(dl.shape[0] - 1):
         directors.append(

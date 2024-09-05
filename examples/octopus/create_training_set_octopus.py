@@ -1,5 +1,5 @@
 """
-Created on Aug 21, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -25,17 +25,17 @@ def main():
 	
 	print('number of markers (excluding the base):', data['n_data_pts'])
 
-	n_elem = data["model"]["n_elem"]
+	# n_elem = data["model"]["n_elem"]
 	L = data["model"]["L"]
-	radius = data["model"]["radius"]
+	# radius = data["model"]["radius"]
 	s = data["model"]["s"]
 	s_mean = _aver(s)
 	dl = data["model"]["dl"]
-	nominal_shear = data["model"]["nominal_shear"]
+	# nominal_shear = data["model"]["nominal_shear"]
 	idx_data_pts = data["idx_data_pts"]
 	# input_data = data['input_data']
 	# true_pos = data['true_pos']
-	# true_dir = data['true_dir']
+	true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 	pca = data["pca"]
@@ -80,7 +80,7 @@ def main():
 
 	strain_rand = coeff2strain(coeffs_rand, pca)
 	# # print(strain_rand[0].shape, strain_rand[1].shape)
-	posdir_rand = coeff2posdir(coeffs_rand, pca, dl)
+	posdir_rand = coeff2posdir(coeffs_rand, pca, dl, true_dir[0,...,0])
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
@@ -113,9 +113,12 @@ def main():
 			marker="o",
 			color=color[ii],
 		)
-		ax.set_xlim(-L, 0)
-		ax.set_ylim(-L, 0)
-		ax.set_zlim(-L, 0)
+		ax.set_xlim(0, L)
+		ax.set_ylim(0, L)
+		ax.set_zlim(0, L)
+		ax.set_xlabel('x')
+		ax.set_ylabel('y')
+		ax.set_zlabel('z')
 		ax.set_aspect("equal")
 		for j in range(3):
 			axes[0][j].plot(s[1:-1], strain_rand[0][i, j, :])

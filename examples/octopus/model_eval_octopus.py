@@ -1,5 +1,5 @@
 """
-Created on Aug 21, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -37,14 +37,14 @@ if user_data_flag:
     test_data_name = "training_data_set_octopus.npy"
     # model_name = 'data_smoothing_model_octopus_test.pt'
     model_name = 'data_smoothing_model_octopus_test' # _save'
-    idx = 1000
+    idx = 2
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
-    test_data = np.load(
-        test_data_file_path, allow_pickle="TRUE"
-    ).item()
+    test_data = data # np.load(
+        # test_data_file_path, allow_pickle="TRUE"
+    # ).item()
     print('Evalulating user\'s trained model...')
 else:
     with resources.path(ASSETS, MODEL_NAME) as path:
@@ -59,7 +59,7 @@ radius = data["model"]["radius"]
 s = data["model"]["s"]
 s_mean = _aver(s)
 dl = data["model"]["dl"]
-nominal_shear = data["model"]["nominal_shear"]
+# nominal_shear = data["model"]["nominal_shear"]
 idx_data_pts = data["idx_data_pts"]
 pca = data["pca"]
 
@@ -135,7 +135,7 @@ for ii in range(len(idx_list)):
         t_loss = loss_fn(output, input_tensor[i][None,:,:])
         test_loss.append(t_loss)
     strain_output = coeff2strain(tensor2numpyVec(output), pca)
-    [position_output, director_output] = strain2posdir(strain_output, dl)
+    [position_output, director_output] = strain2posdir(strain_output, dl, true_dir[0,...,0])
     ax.plot(
         position_output[0, 0, :],
         position_output[0, 1, :],
@@ -158,9 +158,12 @@ for ii in range(len(idx_list)):
         marker="o",
         color=color[ii],
     )
-    ax.set_xlim(-L, 0)
-    ax.set_ylim(-L, 0)
-    ax.set_zlim(-L, 0)
+    ax.set_xlim(0, L)
+    ax.set_ylim(0, L)
+    ax.set_zlim(0, L)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
     ax.set_aspect("equal")
     for j in range(3):
         axes[0][j].plot(s[1:-1], strain_output[0][0, j, :], color=color[ii], ls="-")

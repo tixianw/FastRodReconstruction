@@ -166,13 +166,6 @@ def main(
                 axis_labels=("time",),
             ),
         ),
-        "transformation_offset": SubscriptionInfo(
-            topic="/reconstruction/initial_parameters/transformation_offset",
-            message=NDArrayMessage(
-                shape=(4, 4),
-                axis_labels=("transformation_offset", ""),
-            ),
-        ),
         "pose": SubscriptionInfo(
             topic="/vicon/pose",
             message=PoseMessage(
@@ -185,6 +178,20 @@ def main(
             message=PoseMessage(
                 shape=(number_of_markers,),
                 axis_labels=("marker",),
+            ),
+        ),
+        "lab_frame_transformation": SubscriptionInfo(
+            topic="/reconstruction/lab_frame_transformation",
+            message=NDArrayMessage(
+                shape=(4, 4),
+                axis_labels=("transformation_matrix", ""),
+            ),
+        ),
+        "material_frame_transformation": SubscriptionInfo(
+            topic="/reconstruction/material_frame_transformation",
+            message=NDArrayMessage(
+                shape=(4, 4, number_of_markers),
+                axis_labels=("transformation_matrix", "", "marker"),
             ),
         ),
         "calibrated_pose": SubscriptionInfo(

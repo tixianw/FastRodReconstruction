@@ -1,5 +1,5 @@
 """
-Created on Aug 21, 2024
+Created on Sep 4, 2024
 @author: Tixian Wang
 """
 
@@ -27,6 +27,7 @@ class TensorConstants:
         shear_stretch_stiff,
         idx_data_pts,
         dl,
+        dir0,
         chi_r,
         chi_d,
         pca,
@@ -37,6 +38,7 @@ class TensorConstants:
         self.shear_stretch_stiff = torch.from_numpy(shear_stretch_stiff).float()
         self.idx_data_pts = torch.from_numpy(idx_data_pts)
         self.dl = torch.from_numpy(dl).float()
+        self.dir0 = torch.from_numpy(dir0).float()
         nominal_shear = np.vstack([np.zeros([2, 100]), np.ones(100)])
         self.nominal_shear = torch.from_numpy(nominal_shear).float()
         self.chi_r = torch.from_numpy(chi_r).float() # chi_r
@@ -350,6 +352,7 @@ def main():
         shear_stretch_stiff,
         idx_data_pts,
         dl,
+        true_dir[0,...,0],
         chi_r,
         chi_d,
         pca,

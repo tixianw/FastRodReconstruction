@@ -78,7 +78,7 @@ class Timer:
         """
         Callback function with publishing the current time.
         """
-        if self.callback():
+        if self.callback() is Timer.PUBLISH_TIME.TRUE:
             self.__publisher.publish(
                 self.__time.from_numpy_ndarray(data=self.time).to_message()
             )

@@ -9,6 +9,7 @@ from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
     coeff2strain,
+    pos_dir_to_input,
     strain2posdir,
     tensor2numpyVec,
 )
@@ -16,12 +17,23 @@ from neural_data_smoothing3D import (
 from .result import ReconstructionResult
 
 
+def pose_inv(pose: np.ndarray) -> np.ndarray:
+    """
+    Invert the pose matrix
+    """
+    pose_inv = np.identity(4)
+    pose_inv[:3, :3] = pose[:3, :3].T
+    pose_inv[:3, 3] = -pose[:3, :3].T @ pose[:3, 3]
+    return pose_inv
+
+
 class ReconstructionModel:
     def __init__(
         self,
         data_file_name: Optional[str] = None,
         model_file_name: Optional[str] = None,
-        fixed_base_pose: np.ndarray = np.diag([1, -1, -1, 1]),
+        number_of_markers: int = 3,
+        base_pose: np.ndarray = np.diag([1, -1, -1, 1]),
     ):
 
         if data_file_name:
@@ -44,9 +56,21 @@ class ReconstructionModel:
                 "package_assets:" + ASSETS + "/" + MODEL_NAME_BR2
             )
 
-        self.__base_pose = fixed_base_pose.copy()
-        self.__fixed_base_pose = fixed_base_pose.copy()
-        self.__transformation_offset = np.eye(4)
+        self.number_of_markers = number_of_markers
+        self.calibrated_pose = np.zeros((4, 4, self.number_of_markers))
+        self.input_pose = np.repeat(
+            np.expand_dims(np.diag([1.0, -1.0, -1.0, 1.0]), axis=2),
+            self.number_of_markers - 1,
+            axis=2,
+        )
+
+        self.base_pose = base_pose
+        self.lab_frame_transformation = np.identity(4)
+        self.material_frame_transformation = np.repeat(
+            np.expand_dims(np.identity(4), axis=2),
+            self.number_of_markers,
+            axis=2,
+        )
 
         # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
         # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
@@ -80,9 +104,12 @@ class ReconstructionModel:
             f"\n    model_file_name={self.model_file_name}\n)"
         )
 
-    def __call__(self, marker_data: np.ndarray) -> ReconstructionResult:
+    def reconstruct(self, marker_pose: np.ndarray) -> ReconstructionResult:
+
+        self.calibrate_pose(marker_pose)
+
         # update the result with the new marker data
-        input_tensor = torch.from_numpy(marker_data).float()
+        input_tensor = torch.from_numpy(self.create_input()).float()
         output = self.net(input_tensor)
         kappa = coeff2strain(tensor2numpyVec(output), self.pca)
         [position, director] = strain2posdir(kappa, self.dl, self.nominal_shear)
@@ -91,162 +118,87 @@ class ReconstructionModel:
         self.result.kappa = kappa[0]
         return self.result
 
-    def set_base_pose(self, base_pose: np.ndarray) -> None:
-        self.__base_pose = base_pose.copy()
+    # def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
+    #     if marker_pose.ndim == 3:
+    #         marker_pose = np.expand_dims(marker_pose, axis=0)
+    #     assert marker_pose.ndim == 4, "marker_pose must be 3D or 4D array"
 
-    def set_rotation_offset(self, angle: float):
-        angle = np.deg2rad(angle)
-        self.__transformation_offset[:3, :3] = np.array(
-            [
-                [np.cos(angle), -np.sin(angle), 0],
-                [np.sin(angle), np.cos(angle), 0],
-                [0, 0, 1],
-            ]
-        )
+    #     updated_marker_pose = np.zeros(marker_pose.shape)
 
-    def set_translation_offset(self, translation_offset: np.ndarray):
-        self.__transformation_offset[:3, 3] = translation_offset.copy()
+    #     batch_size = marker_pose.shape[0]
+    #     number_of_markers = marker_pose.shape[3]
 
-    @property
-    def transformation_offset(self) -> np.ndarray:
-        return self.__transformation_offset
+    #     for b in range(batch_size):
 
-    # def remove_base_translation(
-    #     self, marker_position: np.ndarray
-    # ) -> np.ndarray:
-    #     updated_marker_position = marker_position.copy()
-    #     for i in range(marker_position.shape[0]):
-    #         for j in range(marker_position.shape[2]):
-    #             updated_marker_position[i, :, j] = (
-    #                 self.__rotation_offset
-    #                 @ (marker_position[i, :, j] - self.__base_pose[:3, 3])
+    #         translation_offset = -marker_pose[b, :3, 3, 0]
+    #         rotation_offset = (
+    #             self.__fixed_base_pose[:3, :3] @ marker_pose[b, :3, :3, 0].T
+    #         )
+
+    #         for i in range(number_of_markers):
+    #             updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[
+    #                 :3, :3
+    #             ] @ (translation_offset + marker_pose[b, :3, 3, i])
+    #             updated_marker_pose[b, :3, :3, i] = (
+    #                 rotation_offset @ marker_pose[b, :3, :3, i]
     #             )
-    #     return updated_marker_position
+    #             updated_marker_pose[b, :3, 3, i] = updated_marker_pose[
+    #                 b, :3, 3, i
+    #             ] + (
+    #                 updated_marker_pose[b, :3, :3, i]
+    #                 @ self.__transformation_offset[:3, 3]
+    #                 - updated_marker_pose[b, :3, :3, 0]
+    #                 @ self.__transformation_offset[:3, 3]
+    #             )
 
-    # def remove_base_rotation(self, marker_directors: np.ndarray) -> np.ndarray:
-    #     update_maker_directors = marker_directors.copy()
-    #     rotation_matrix = (
-    #         self.__rotation_offset @ self.__base_pose[:3, :3]
-    #     ).T @ self.__fixed_base_pose[:3, :3]
-    #     for i in range(marker_directors.shape[0]):
-    #         for j in range(marker_directors.shape[3]):
-    #             update_maker_directors[i, :, :, j] = (
-    #                 self.__rotation_offset
-    #                 @ marker_directors[i, :, :, j]
-    #                 @ rotation_matrix
-    #             ).T
-    #     return update_maker_directors
-
-    def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
-        if marker_pose.ndim == 3:
-            marker_pose = np.expand_dims(marker_pose, axis=0)
-        assert marker_pose.ndim == 4, "marker_pose must be 3D or 4D array"
-
-        updated_marker_pose = np.zeros(marker_pose.shape)
-
-        batch_size = marker_pose.shape[0]
-        number_of_markers = marker_pose.shape[3]
-
-        # translation_offset = -self.__base_pose[:3, 3]
-        # rotation_offset = (
-        #     self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
-        # )
-
-        for b in range(batch_size):
-
-            translation_offset = -marker_pose[b, :3, 3, 0]
-            rotation_offset = (
-                self.__fixed_base_pose[:3, :3] @ marker_pose[b, :3, :3, 0].T
-            )
-
-            for i in range(number_of_markers):
-                updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[
-                    :3, :3
-                ] @ (translation_offset + marker_pose[b, :3, 3, i])
-                updated_marker_pose[b, :3, :3, i] = (
-                    rotation_offset @ marker_pose[b, :3, :3, i]
-                )
-                updated_marker_pose[b, :3, 3, i] = updated_marker_pose[
-                    b, :3, 3, i
-                ] + (
-                    updated_marker_pose[b, :3, :3, i]
-                    @ self.__transformation_offset[:3, 3]
-                    - updated_marker_pose[b, :3, :3, 0]
-                    @ self.__transformation_offset[:3, 3]
-                )
-
-            # for i in range(number_of_markers):
-            #     updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[:3, :3] @ (
-            #         translation_offset + marker_pose[b, :3, 3, i]
-            #     )
-            #     updated_marker_pose[b, :3, :3, i] = (
-            #         rotation_offset @ marker_pose[b, :3, :3, i]
-            #     )
-            #     updated_marker_pose[b, :3, 3, i] = updated_marker_pose[b, :3, 3, i] + (
-            #         updated_marker_pose[b, :3, :3, i] @ self.__transformation_offset[:3, 3] -
-            #         self.__base_pose[:3, :3] @ self.__transformation_offset[:3, 3]
-            #     )
-
-        # Remove offset
-        # for i in range(marker_pose.shape[0]):
-        #     for j in range(marker_pose.shape[3]):
-        #         updated_marker_pose[i, :3, 3, j] = (
-        #             marker_pose[i, :3, 3, j] - self.__base_pose[:3, 3]
-        #         )
-
-        # Align bending direction
-        # for i in range(marker_pose.shape[0]):
-        #     for j in range(marker_pose.shape[3]):
-        #         updated_marker_pose[i, :3, :, j] = (
-        #             self.__bending_rotation_matrix @ updated_marker_pose[i, :3, :, j]
-        #         )
-        #         updated_marker_pose[i, :3, :3, j] = (
-        #             self.__bending_rotation_matrix @ updated_marker_pose[i, :3, :3, j]
-        #         )
-
-        # Remove rotation
-        # rotation_matrix = (
-        #     self.__fixed_base_pose[:3, :3] @ self.__base_pose[:3, :3].T
-        # )
-        # for i in range(marker_pose.shape[0]):
-        #     for j in range(marker_pose.shape[3]):
-        #         updated_marker_pose[i, :3, :3, j] = (
-        #             rotation_matrix @ updated_marker_pose[i, :3, :3, j]
-        #         )
-        #         updated_marker_pose[i, :3, 3, j] = (
-        #             rotation_matrix @ updated_marker_pose[i, :3, 3, j]
-        #         )
-        return updated_marker_pose
+    #     return updated_marker_pose
 
     def process_calibration(self, marker_pose: np.ndarray) -> bool:
-        number_of_markers = marker_pose.shape[2]
-        position_offset = np.zeros((3, number_of_markers))
-        for i in range(number_of_markers):
-            position_offset[:2, i] = (
-                marker_pose[:2, 3, i] - marker_pose[:2, 3, 0]
-            )
-            position_offset[:, i] = (
-                marker_pose[:3, :3, i].T @ position_offset[:, i]
-            )
-            position_offset[2, i] = 0
-            print(marker_pose[:3, :3, i])
+        marker_base_pose = marker_pose[:, :, 0]
+        if np.allclose(
+            marker_base_pose[:3, 3],
+            self.lab_frame_transformation[:3, 3],
+            atol=1e-4,
+        ):
+            return True
+        self.lab_frame_transformation[:3, 3] = marker_base_pose[:3, 3]
 
-        if hasattr(self, "position_offset"):
-            if np.allclose(position_offset, self.position_offset, atol=1e-4):
-                print(self.position_offset[:, 1], position_offset[:, 2])
-                return True
-            else:
-                self.position_offset = position_offset
-                return False
-        else:
-            self.position_offset = position_offset
+        # position_offset = np.zeros((3, self.number_of_markers))
+        # for i in range(self.number_of_markers):
+        #     position_offset[:2, i] = (
+        #         marker_pose[:2, 3, i] - marker_pose[:2, 3, 0]
+        #     )
+        #     position_offset[:, i] = (
+        #         marker_pose[:3, :3, i].T @ position_offset[:, i]
+        #     )
+        #     position_offset[2, i] = 0
+
+        # if hasattr(self, "position_offset"):
+        #     if np.allclose(position_offset, self.position_offset, atol=1e-4):
+        #         print(self.position_offset[:, 1], position_offset[:, 2])
+        #         return True
+        #     else:
+        #         self.position_offset = position_offset
+        #         return False
+        # else:
+        #     self.position_offset = position_offset
         return False
 
     def calibrate_pose(self, marker_pose: np.ndarray) -> None:
-        self.calibrated_pose = marker_pose.copy()
-        number_of_markers = marker_pose.shape[2]
-        for i in range(number_of_markers):
-            self.calibrated_pose[:3, 3, i] = (
-                marker_pose[:3, 3, 0]
-                - marker_pose[:3, :3, i] @ self.position_offset[:, i]
+        for i in range(self.number_of_markers):
+            self.calibrated_pose[:, :, i] = (
+                pose_inv(self.lab_frame_transformation)
+                @ marker_pose[:, :, i]
+                @ pose_inv(self.material_frame_transformation[:, :, i])
             )
+
+    def create_input(self) -> np.ndarray:
+        self.input_pose[:3, 3, :] = self.calibrated_pose[:3, 3, 1:].copy()
+        self.input_pose[:3, :3, :] = np.transpose(
+            self.calibrated_pose[:3, :3, 1:], (1, 0, 2)
+        )
+
+        return pos_dir_to_input(
+            pos=self.input_pose[None, :3, 3, :],
+            dir=self.input_pose[None, :3, :3, :],
+        )
