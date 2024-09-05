@@ -1,14 +1,14 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import click
 import numpy as np
 
 import ros2_vicon
-from neural_data_smoothing3D import pos_dir_to_input
-from reconstruction import ReconstructionModel, ReconstructionResult
+from reconstruction import ReconstructionModel
 from ros2_vicon import (
     NDArrayPublisher,
     PosePublisher,
@@ -16,17 +16,16 @@ from ros2_vicon import (
     ViconPoseSubscriber,
 )
 from ros2_vicon.filter import PoseFilter
-from ros2_vicon.node import LoggerNode
+from ros2_vicon.node import StageNode
 
 
 @dataclass
 class ReconstructionModelResource:
     data_file_name: Optional[str] = None
     model_file_name: Optional[str] = None
-    rotation_angle_degree: float = 0.0
 
 
-class ReconstructionNode(LoggerNode):
+class ReconstructionNode(StageNode):
     def __init__(
         self,
         subscription_topics: Tuple[str],
@@ -37,6 +36,12 @@ class ReconstructionNode(LoggerNode):
         super().__init__(
             node_name="reconstruction_node",
             log_level=log_level,
+            ordered_stages=OrderedDict(
+                filter_transition=self.stage_filter_transition,
+                lab_frame_calibration=self.stage_lab_frame_calibration,
+                material_frame_calibration=self.stage_material_frame_calibration,
+                reconstruction=self.stage_reconstruction,
+            ),
         )
 
         self.subscription_topics = subscription_topics
@@ -53,7 +58,16 @@ class ReconstructionNode(LoggerNode):
                 node=self,
             )
             self.__subscribers.append(subscriber)
-        self.init_data()
+        self.number_of_markers = len(self.__subscribers)
+        self.pose = np.repeat(
+            np.expand_dims(
+                np.diag([1.0, -1.0, -1.0, 1.0]),
+                axis=2,
+            ),
+            self.number_of_markers,
+            axis=2,
+        )
+        self.new_message = False
 
         # Initialize pose filter
         self.log_info("- Pose filter initializing...")
@@ -68,12 +82,10 @@ class ReconstructionNode(LoggerNode):
             ReconstructionModel(
                 data_file_name=model_resource.data_file_name,
                 model_file_name=model_resource.model_file_name,
+                number_of_markers=self.number_of_markers,
             )
             if model_resource
-            else ReconstructionModel()
-        )
-        self.model.set_rotation_angle_degree(
-            angle=model_resource.rotation_angle_degree
+            else ReconstructionModel(number_of_markers=self.number_of_markers)
         )
         self.log_info(f"\n{self.model}")
 
@@ -94,19 +106,30 @@ class ReconstructionNode(LoggerNode):
                 qos_profile=100,
                 node=self,
             ),
-            "rotation_matrix": NDArrayPublisher(
-                topic="/reconstruction/initial_parameters/rotation_matrix",
-                shape=(
-                    3,
-                    3,
-                ),
-                axis_labels=("rotation_matrix", ""),
+            "lab_frame_transformation": NDArrayPublisher(
+                topic="/reconstruction/lab_frame_transformation",
+                shape=(4, 4),
+                axis_labels=("transformation_matrix", ""),
+                qos_profile=100,
+                node=self,
+            ),
+            "material_frame_transformation": NDArrayPublisher(
+                topic="/reconstruction/material_frame_transformation",
+                shape=(4, 4, self.number_of_markers),
+                axis_labels=("transformation_matrix", "", "marker"),
+                qos_profile=100,
+                node=self,
+            ),
+            "calibrated_pose": PosePublisher(
+                topic="/reconstruction/calibrated_pose",
+                length=self.number_of_markers,
+                label="marker",
                 qos_profile=100,
                 node=self,
             ),
             "input": NDArrayPublisher(
                 topic="/reconstruction/input",
-                shape=self.__input.shape[1:],
+                shape=self.model.input_pose.shape,
                 axis_labels=("input", "", "marker"),
                 qos_profile=100,
                 node=self,
@@ -147,22 +170,6 @@ class ReconstructionNode(LoggerNode):
         self.ready()
         self.time = time.time()
 
-    def init_data(self) -> None:
-        self.number_of_markers = len(self.__subscribers)
-        self.__pose = np.zeros((4, 4, self.number_of_markers))
-        self.__pose[3, 3, :] = 1.0
-        for i in range(self.number_of_markers):
-            self.__pose[:3, :3, i] = np.diag([1, -1, -1])
-        self.__input = np.zeros((1, 4, 4, self.number_of_markers - 1))
-        self.__input[0, 3, 3, :] = 1.0
-        for i in range(self.number_of_markers - 1):
-            self.__input[0, :3, :3, i] = np.diag([1, -1, -1])
-        self.new_message = False
-
-    @property
-    def result(self) -> ReconstructionResult:
-        return self.model.result
-
     def subscriber_callback_closure(self, i: int) -> callable:
         def subscriber_callback(msg):
             self.new_message = self.__subscribers[i].receive(msg)
@@ -179,61 +186,86 @@ class ReconstructionNode(LoggerNode):
 
         return subscriber_callback
 
-    def timer_callback(self) -> bool:
+    def create_pose(self) -> None:
+        # Create pose from the subscribers
+        for i, subscriber in enumerate(self.__subscribers):
+            self.pose[:3, 3, i] = subscriber.message.position.copy()
+            self.pose[:3, :3, i] = subscriber.message.directors.copy()
+
+    def timer_callback(self) -> Timer.PUBLISH_TIME:
         if not self.new_message:
             return False
-        new_time = time.time()
+        self.create_pose()
+        self.filter.update(self.pose)
+        self.new_message = False
+        return self.stage()
+
+    def stage_filter_transition(self) -> Timer.PUBLISH_TIME:
+        if time.time() - self.time > 2:
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
+        lab_angle = 155.0 / 180.0 * np.pi
+        self.model.lab_frame_transformation[:3, :3] = np.array(
+            [
+                [np.cos(lab_angle), -np.sin(lab_angle), 0.0],
+                [np.sin(lab_angle), np.cos(lab_angle), 0.0],
+                [0.0, 0.0, 1.0],
+            ]
+        )
+        material_angle = lab_angle - np.pi
+        for i in range(self.number_of_markers):
+            self.model.material_frame_transformation[:3, :3, i] = np.array(
+                [
+                    [np.cos(material_angle), -np.sin(material_angle), 0.0],
+                    [np.sin(material_angle), np.cos(material_angle), 0.0],
+                    [0.0, 0.0, 1.0],
+                ]
+            )
+
+        if self.model.process_lab_frame_calibration(self.filter.pose):
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_material_frame_calibration(self) -> Timer.PUBLISH_TIME:
+        for i in range(self.number_of_markers):
+            self.model.material_frame_transformation[:2, 3, i] = np.array(
+                [0.027, 0.027]
+            )
+        if self.model.process_material_frame_calibration(self.filter.pose):
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_reconstruction(self) -> Timer.PUBLISH_TIME:
         self.log_debug(f"Reconstructing...")
-        self.reconstruct()
+        self.model.reconstruct(
+            marker_pose=self.filter.pose,
+        )
+        new_time = time.time()
         self.log_info(
             f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
         )
         self.time = new_time
-        self.publish("pose", self.__pose)
+        self.publish_messages()
+        return self.timer.PUBLISH_TIME.TRUE
+
+    def publish_messages(self) -> None:
+        self.publish("pose", self.pose)
         self.publish("filtered_pose", self.filter.pose)
-        self.publish("rotation_matrix", self.model.alignment_matrix)
-        self.publish("input", self.__input[0])
-        self.publish("position", self.result.position)
-        self.publish("directors", self.result.directors)
-        self.publish("kappa", self.result.kappa)
-        self.new_message = False
-        return True
-
-    def create_pose(self) -> None:
-        # Create pose from the subscribers
-        for i, subscriber in enumerate(self.__subscribers):
-            self.__pose[:3, 3, i] = subscriber.message.position.copy()
-            self.__pose[:3, :3, i] = subscriber.message.directors.copy()
-
-    def create_input(self) -> np.ndarray:
-        # pose = self.__pose
-        pose = self.filter.pose
-
-        # Create input from pose
-        self.model.set_base_pose(pose[..., 0])
-        # self.__input[:, :3, 3, :] = self.model.remove_base_translation(
-        #     marker_position=self.__pose[:, :3, 3, 1:]
-        # )
-        # self.__input[:, :3, :3, :] = self.model.remove_base_rotation(
-        #     marker_directors=self.__pose[:, :3, :3, 1:]
-        # )
-        base_removed_pose = self.model.remove_base_pose_offset(
-            marker_pose=pose[..., 1:]
+        self.publish(
+            "lab_frame_transformation",
+            self.model.lab_frame_transformation,
         )
-        self.__input[:, :3, 3, :] = base_removed_pose[:, :3, 3, :]
-        self.__input[:, :3, :3, :] = np.transpose(
-            base_removed_pose[:, :3, :3, :], (0, 2, 1, 3)
+        self.publish(
+            "material_frame_transformation",
+            self.model.material_frame_transformation,
         )
-
-        return pos_dir_to_input(
-            pos=self.__input[:, :3, 3, :],
-            dir=self.__input[:, :3, :3, :],
-        )
-
-    def reconstruct(self) -> None:
-        self.create_pose()
-        self.filter.update(self.__pose)
-        self.model(self.create_input())
+        self.publish("calibrated_pose", self.model.calibrated_pose)
+        self.publish("input", self.model.input_pose)
+        self.publish("position", self.model.result.position)
+        self.publish("directors", self.model.result.directors)
+        self.publish("kappa", self.model.result.kappa)
 
     def publish(
         self,
@@ -289,9 +321,11 @@ def main(log_level: str, source: str):
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source),
         log_level=log_level,
-        model_resource=ReconstructionModelResource(
-            rotation_angle_degree=-155.0
-        ),
+        # model_resource=ReconstructionModelResource(
+        #     rotation_offset=-155.0,
+        #     translation_offset=np.array([-0.02, -0.03, 0.0]),
+        #     # translation_offset=np.array([0.0, 0.0, 0.0]),
+        # ),
     )
     try:
         node.start()

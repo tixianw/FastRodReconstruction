@@ -1,6 +1,7 @@
-from typing import Union
+from typing import ClassVar, Union
 
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 
@@ -17,6 +18,10 @@ class Timer:
     topic: str = "/time"
     publish_flag: bool = False
     qos_profile: Union[QoSProfile, int] = 1
+
+    class PUBLISH_TIME(Enum):
+        TRUE = True
+        FALSE = False
 
     def __post_init__(self):
 
@@ -69,23 +74,21 @@ class Timer:
             )
         return info
 
-    def __callback_with_publish(self) -> bool:
+    def __callback_with_publish(self) -> None:
         """
         Callback function with publishing the current time.
         """
-        if self.callback():
+        if self.callback() is Timer.PUBLISH_TIME.TRUE:
             self.__publisher.publish(
                 self.__time.from_numpy_ndarray(data=self.time).to_message()
             )
             self.node.log_debug(f"{self}")
-            return True
-        return False
 
-    def __callback_without_publish(self) -> bool:
+    def __callback_without_publish(self) -> None:
         """
         Callback function without publishing the current time.
         """
-        return self.callback()
+        self.callback()
 
     def get_clock(self) -> float:
         """

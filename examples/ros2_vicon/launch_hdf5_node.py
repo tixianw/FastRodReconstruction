@@ -166,13 +166,6 @@ def main(
                 axis_labels=("time",),
             ),
         ),
-        "rotation_matrix": SubscriptionInfo(
-            topic="/reconstruction/initial_parameters/rotation_matrix",
-            message=NDArrayMessage(
-                shape=(3, 3),
-                axis_labels=("rotation_matrix", ""),
-            ),
-        ),
         "pose": SubscriptionInfo(
             topic="/vicon/pose",
             message=PoseMessage(
@@ -182,6 +175,27 @@ def main(
         ),
         "filtered_pose": SubscriptionInfo(
             topic="/filter/pose",
+            message=PoseMessage(
+                shape=(number_of_markers,),
+                axis_labels=("marker",),
+            ),
+        ),
+        "lab_frame_transformation": SubscriptionInfo(
+            topic="/reconstruction/lab_frame_transformation",
+            message=NDArrayMessage(
+                shape=(4, 4),
+                axis_labels=("transformation_matrix", ""),
+            ),
+        ),
+        "material_frame_transformation": SubscriptionInfo(
+            topic="/reconstruction/material_frame_transformation",
+            message=NDArrayMessage(
+                shape=(4, 4, number_of_markers),
+                axis_labels=("transformation_matrix", "", "marker"),
+            ),
+        ),
+        "calibrated_pose": SubscriptionInfo(
+            topic="/reconstruction/calibrated_pose",
             message=PoseMessage(
                 shape=(number_of_markers,),
                 axis_labels=("marker",),
