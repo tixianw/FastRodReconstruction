@@ -18,7 +18,7 @@ class StageNode(LoggerNode):
         if current_index + 1 < len(self.stages):
             self.log_info(
                 f"\tStage {self.current_stage} running... Done. "
-                f"Elapsed time: {time.time() - self.__stage_time} [sec]."
+                f"Elapsed time: {time.time() - self.__stage_time:.4f} [sec]."
             )
             self.__stage_time = time.time()
             self.current_stage = self.stages[current_index + 1]

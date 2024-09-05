@@ -38,7 +38,8 @@ class ReconstructionNode(StageNode):
             log_level=log_level,
             ordered_stages=OrderedDict(
                 filter_transition=self.stage_filter_transition,
-                calibration=self.stage_calibration,
+                lab_frame_calibration=self.stage_lab_frame_calibration,
+                material_frame_calibration=self.stage_material_frame_calibration,
                 reconstruction=self.stage_reconstruction,
             ),
         )
@@ -86,11 +87,6 @@ class ReconstructionNode(StageNode):
             if model_resource
             else ReconstructionModel(number_of_markers=self.number_of_markers)
         )
-        # if model_resource:
-        #     self.model.set_translation_offset(
-        #         translation_offset=model_resource.translation_offset
-        #     )
-        #     self.model.set_rotation_offset(angle=model_resource.rotation_offset)
         self.log_info(f"\n{self.model}")
 
         # Initialize publishers
@@ -209,7 +205,7 @@ class ReconstructionNode(StageNode):
             self.next_stage()
         return self.timer.PUBLISH_TIME.FALSE
 
-    def stage_calibration(self) -> Timer.PUBLISH_TIME:
+    def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
         lab_angle = 155.0 / 180.0 * np.pi
         self.model.lab_frame_transformation[:3, :3] = np.array(
             [
@@ -228,7 +224,16 @@ class ReconstructionNode(StageNode):
                 ]
             )
 
-        if self.model.process_calibration(self.filter.pose):
+        if self.model.process_lab_frame_calibration(self.filter.pose):
+            self.next_stage()
+        return self.timer.PUBLISH_TIME.FALSE
+
+    def stage_material_frame_calibration(self) -> Timer.PUBLISH_TIME:
+        for i in range(self.number_of_markers):
+            self.model.material_frame_transformation[:2, 3, i] = np.array(
+                [0.027, 0.027]
+            )
+        if self.model.process_material_frame_calibration(self.filter.pose):
             self.next_stage()
         return self.timer.PUBLISH_TIME.FALSE
 
@@ -249,7 +254,8 @@ class ReconstructionNode(StageNode):
         self.publish("pose", self.pose)
         self.publish("filtered_pose", self.filter.pose)
         self.publish(
-            "lab_frame_transformation", self.model.lab_frame_transformation
+            "lab_frame_transformation",
+            self.model.lab_frame_transformation,
         )
         self.publish(
             "material_frame_transformation",

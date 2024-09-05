@@ -118,42 +118,7 @@ class ReconstructionModel:
         self.result.kappa = kappa[0]
         return self.result
 
-    # def remove_base_pose_offset(self, marker_pose: np.ndarray) -> np.ndarray:
-    #     if marker_pose.ndim == 3:
-    #         marker_pose = np.expand_dims(marker_pose, axis=0)
-    #     assert marker_pose.ndim == 4, "marker_pose must be 3D or 4D array"
-
-    #     updated_marker_pose = np.zeros(marker_pose.shape)
-
-    #     batch_size = marker_pose.shape[0]
-    #     number_of_markers = marker_pose.shape[3]
-
-    #     for b in range(batch_size):
-
-    #         translation_offset = -marker_pose[b, :3, 3, 0]
-    #         rotation_offset = (
-    #             self.__fixed_base_pose[:3, :3] @ marker_pose[b, :3, :3, 0].T
-    #         )
-
-    #         for i in range(number_of_markers):
-    #             updated_marker_pose[b, :3, 3, i] = self.__transformation_offset[
-    #                 :3, :3
-    #             ] @ (translation_offset + marker_pose[b, :3, 3, i])
-    #             updated_marker_pose[b, :3, :3, i] = (
-    #                 rotation_offset @ marker_pose[b, :3, :3, i]
-    #             )
-    #             updated_marker_pose[b, :3, 3, i] = updated_marker_pose[
-    #                 b, :3, 3, i
-    #             ] + (
-    #                 updated_marker_pose[b, :3, :3, i]
-    #                 @ self.__transformation_offset[:3, 3]
-    #                 - updated_marker_pose[b, :3, :3, 0]
-    #                 @ self.__transformation_offset[:3, 3]
-    #             )
-
-    #     return updated_marker_pose
-
-    def process_calibration(self, marker_pose: np.ndarray) -> bool:
+    def process_lab_frame_calibration(self, marker_pose: np.ndarray) -> bool:
         marker_base_pose = marker_pose[:, :, 0]
         if np.allclose(
             marker_base_pose[:3, 3],
@@ -184,6 +149,24 @@ class ReconstructionModel:
         #     self.position_offset = position_offset
         return False
 
+    def process_material_frame_calibration(
+        self, marker_pose: np.ndarray
+    ) -> bool:
+        # self.calibrate_pose(marker_pose)
+        # marker_base_pose = self.calibrated_pose[:, :, 0]
+        # new_lab_frame_transformation = self.lab_frame_transformation.copy()
+        # new_lab_frame_transformation[:3, 3] = (
+        #     self.lab_frame_transformation[:3, 3]
+        #     - 0.1 * marker_base_pose[:3, 3]
+        # )
+        # error = np.linalg.norm(new_lab_frame_transformation[:3, 3]-self.lab_frame_transformation[:3, 3])
+        # print(error)
+        # if error < 1e-4:
+        #     return True
+        # self.lab_frame_transformation = new_lab_frame_transformation
+        # return False
+        return True
+
     def calibrate_pose(self, marker_pose: np.ndarray) -> None:
         for i in range(self.number_of_markers):
             self.calibrated_pose[:, :, i] = (
@@ -193,7 +176,9 @@ class ReconstructionModel:
             )
 
     def create_input(self) -> np.ndarray:
-        self.input_pose[:3, 3, :] = self.calibrated_pose[:3, 3, 1:].copy()
+        self.input_pose[:3, 3, :] = self.calibrated_pose[
+            :3, 3, 1:
+        ] - np.expand_dims(self.calibrated_pose[:3, 3, 0], axis=1)
         self.input_pose[:3, :3, :] = np.transpose(
             self.calibrated_pose[:3, :3, 1:], (1, 0, 2)
         )
