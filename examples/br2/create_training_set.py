@@ -10,15 +10,15 @@ import numpy as np
 import numpy.random as npr
 
 from assets import ASSETS, FILE_NAME_BR2
+FILE_NAME = FILE_NAME_BR2[4]
 from neural_data_smoothing3D import coeff2posdir, coeff2strain, pos_dir_to_noisy_input
 from read_h5_data import read_data_from_file
 
 color = ["C" + str(i) for i in range(20)]
 
-
 def main():
 
-	with resources.path(ASSETS, FILE_NAME_BR2) as path:
+	with resources.path(ASSETS, FILE_NAME) as path:
 		data = np.load(path, allow_pickle="TRUE").item()
 	
 	print('number of markers (excluding the base):', data['n_data_pts'])

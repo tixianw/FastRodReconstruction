@@ -11,6 +11,9 @@ import numpy as np
 import torch
 
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
+idx = 4
+FILE_NAME = FILE_NAME_BR2[idx]
+MODEL_NAME = MODEL_NAME_BR2[idx]
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
     CurvatureSmoothing3DLoss,
@@ -23,7 +26,7 @@ color = ["C" + str(i) for i in range(10)]
 # np.random.seed(2024)
 
 ## import rod parameters
-with resources.path(ASSETS, FILE_NAME_BR2) as path:
+with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
 user_data_flag = True # False # 
@@ -45,7 +48,7 @@ if user_data_flag:
     # ).item()
     print('Evalulating user\'s trained model...')
 else:
-    with resources.path(ASSETS, MODEL_NAME_BR2) as path:
+    with resources.path(ASSETS, MODEL_NAME) as path:
         model = torch.load(path)
     test_data = data
     print('No user trained model. Evalulating developer\'s trained model...')

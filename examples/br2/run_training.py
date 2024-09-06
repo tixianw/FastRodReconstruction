@@ -9,6 +9,7 @@ from importlib import resources
 import numpy as np
 
 from assets import ASSETS, FILE_NAME_BR2
+FILE_NAME = FILE_NAME_BR2[4]
 from neural_data_smoothing3D import CurvatureSmoothing3DModel, TensorConstants
 from neural_data_smoothing3D.utils import _aver
 
@@ -33,7 +34,7 @@ def main():
             f"Run create_training_set.py first"
         )
 
-    with resources.path(ASSETS, FILE_NAME_BR2) as path:
+    with resources.path(ASSETS, FILE_NAME) as path:
         data = np.load(path, allow_pickle="TRUE").item()
 
     n_elem = data["model"]["n_elem"]
