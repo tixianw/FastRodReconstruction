@@ -72,8 +72,8 @@ class ReconstructionNode(StageNode):
         # Initialize pose filter
         self.log_info("- Pose filter initializing...")
         self.filter = PoseFilter(
-            director_filter_gain=np.array([0.1, 0.1, 0.1]),
-            position_filter_gain=np.array([0.1, 0.1, 0.1]),
+            director_filter_gain=0.1 * np.ones(self.number_of_markers),
+            position_filter_gain=0.1 * np.ones(self.number_of_markers),
         )
 
         # Initialize reconstruction model
@@ -82,7 +82,6 @@ class ReconstructionNode(StageNode):
             ReconstructionModel(
                 data_file_name=model_resource.data_file_name,
                 model_file_name=model_resource.model_file_name,
-                number_of_markers=self.number_of_markers,
             )
             if model_resource
             else ReconstructionModel(number_of_markers=self.number_of_markers)
@@ -206,7 +205,7 @@ class ReconstructionNode(StageNode):
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
-        lab_angle = 155.0 / 180.0 * np.pi
+        lab_angle = -100.0 / 180.0 * np.pi  # 155
         self.model.lab_frame_transformation[:3, :3] = np.array(
             [
                 [np.cos(lab_angle), -np.sin(lab_angle), 0.0],
@@ -214,7 +213,7 @@ class ReconstructionNode(StageNode):
                 [0.0, 0.0, 1.0],
             ]
         )
-        material_angle = lab_angle - np.pi
+        material_angle = lab_angle
         for i in range(self.number_of_markers):
             self.model.material_frame_transformation[:3, :3, i] = np.array(
                 [
@@ -229,10 +228,10 @@ class ReconstructionNode(StageNode):
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_material_frame_calibration(self) -> Timer.PUBLISH_TIME:
-        for i in range(self.number_of_markers):
-            self.model.material_frame_transformation[:2, 3, i] = np.array(
-                [0.027, 0.027]
-            )
+        # for i in range(self.number_of_markers):
+        #     self.model.material_frame_transformation[:2, 3, i] = np.array(
+        #         [0.027, 0.027]
+        #     )
         if self.model.process_material_frame_calibration(self.filter.pose):
             self.next_stage()
         return self.timer.PUBLISH_TIME.FALSE
@@ -276,23 +275,30 @@ class ReconstructionNode(StageNode):
         self.log_debug(f"{self.__publishers[publisher_key]}")
 
 
-def set_subsciption_topics(source: str):
+def set_subsciption_topics(source: str, markers: int) -> Tuple[str]:
     if source.lower() == "vicon":
-        subscription_topics = (
-            "/vicon/br2_seg_1/br2_seg_1",
-            "/vicon/br2_seg_2/br2_seg_2",
-            "/vicon/br2_seg_3/br2_seg_3",
-            # "/vicon/br2_seg_4/br2_seg_4",
+        subscription_topics = tuple(
+            f"/vicon/br2_seg_{i}/br2_seg_{i}" for i in range(1, markers + 1)
         )
+        # subscription_topics = (
+        #     "/vicon/br2_seg_1/br2_seg_1",
+        #     "/vicon/br2_seg_2/br2_seg_2",
+        #     "/vicon/br2_seg_3/br2_seg_3",
+        #     "/vicon/br2_seg_4/br2_seg_4",
+        # )
     if source.lower() == "vicon_mock":
-        subscription_topics = (
-            "/vicon_mock/CrossSection_0_0/CrossSection_0_0",
-            "/vicon_mock/CrossSection_0_1/CrossSection_0_1",
-            "/vicon_mock/CrossSection_0_2/CrossSection_0_2",
-            # "/vicon_mock/CrossSection_0_3/CrossSection_0_3",
-            # "/vicon_mock/CrossSection_0_4/CrossSection_0_4",
-            # "/vicon_mock/CrossSection_0_5/CrossSection_0_5",
+        subscription_topics = tuple(
+            f"/vicon_mock/CrossSection_0_{i}/CrossSection_0_{i}"
+            for i in range(markers)
         )
+        # subscription_topics = (
+        #     "/vicon_mock/CrossSection_0_0/CrossSection_0_0",
+        #     "/vicon_mock/CrossSection_0_1/CrossSection_0_1",
+        #     "/vicon_mock/CrossSection_0_2/CrossSection_0_2",
+        #     "/vicon_mock/CrossSection_0_3/CrossSection_0_3",
+        #     "/vicon_mock/CrossSection_0_4/CrossSection_0_4",
+        #     "/vicon_mock/CrossSection_0_5/CrossSection_0_5",
+        # )
     return subscription_topics
 
 
@@ -315,11 +321,17 @@ def set_subsciption_topics(source: str):
     default="vicon",
     help="Set the source of the subscriber",
 )
-def main(log_level: str, source: str):
+@click.option(
+    "--markers",
+    type=int,
+    default=4,
+    help="Set the number of markers",
+)
+def main(log_level: str, source: str, markers: int):
     ros2_vicon.init()
 
     node = ReconstructionNode(
-        subscription_topics=set_subsciption_topics(source),
+        subscription_topics=set_subsciption_topics(source, markers),
         log_level=log_level,
         # model_resource=ReconstructionModelResource(
         #     rotation_offset=-155.0,

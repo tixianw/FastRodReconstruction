@@ -108,7 +108,7 @@ def not_smaller_then_one_constraint(
 @click.option(
     "--number-of-markers",
     type=int,
-    default=3,
+    default=4,
     help="Set the number of markers",
     callback=lambda ctx, param, value: (
         value if value >= 1 else ctx.fail("Must be greater than or equal to 1")
