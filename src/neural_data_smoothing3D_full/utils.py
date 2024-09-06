@@ -4,6 +4,7 @@ Created on Sep 4, 2024
 """
 
 import numpy as np
+import numpy.random as npr
 import torch
 # from tqdm import tqdm
 from numba import njit
@@ -12,6 +13,15 @@ from numba import njit
 def tensor2numpyVec(tensor):
     return tensor.detach().numpy()  # .flatten()
 
+def pos_dir_to_noisy_input(pos: np.ndarray, dir: np.ndarray, noise_level_p=0., noise_level_d=0., L=0.18) -> np.ndarray:
+    noisy_pos = pos.copy() + npr.randn(*pos.shape) * noise_level_p * L ## 0.01 level is 1 percent of nominal length
+    random_axis = npr.randn(*dir[:,:,0,:].shape) * noise_level_d ## 0.01 level is 1 degree
+    Rotation = get_rotation_matrix_numpy(random_axis)
+    noisy_dir = np.einsum("nijl,njkl->nikl", Rotation, dir.copy())
+    inputs = np.hstack(
+        [noisy_pos, noisy_dir[:, 0, :, :], noisy_dir[:, -1, :, :]]
+    )  # only take d1 and d3 for dir (row vectors)
+    return inputs
 
 # @njit(cache=True)
 def pos_dir_to_input(pos: np.ndarray, dir: np.ndarray) -> np.ndarray:
@@ -140,6 +150,32 @@ def get_rotation_matrix(axis):
     Rotation[1, 1] += 1
     Rotation[2, 2] += 1
 
+    return Rotation
+
+def get_rotation_matrix_numpy(axis):
+    n_sample = len(axis)
+    n_elem = axis.shape[-1] + 1
+    angle = np.linalg.norm(axis, axis=1)
+    axis = axis / (angle[:, None] + 1e-16)
+
+    K = np.zeros((n_sample, 3, 3, n_elem - 1))
+    K[:, 2, 1, :] = axis[:, 0, :]
+    K[:, 1, 2, :] = -axis[:, 0, :]
+    K[:, 0, 2, :] = axis[:, 1, :]
+    K[:, 2, 0, :] = -axis[:, 1, :]
+    K[:, 1, 0, :] = axis[:, 2, :]
+    K[:, 0, 1, :] = -axis[:, 2, :]
+
+    K2 = (
+        np.einsum("nik,njk->nijk", axis, axis)
+        - np.eye(3)[None, ..., None]
+    )
+
+    Rotation = (
+        K * np.sin(angle)[:, None, None, :]
+        + K2 * (1 - np.cos(angle))[:, None, None, :]
+        + np.eye(3)[None, ..., None]
+    )
     return Rotation
 
 

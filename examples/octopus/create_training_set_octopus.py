@@ -11,7 +11,7 @@ import numpy.random as npr
 
 from assets import ASSETS
 from assets import FILE_NAME_OCTOPUS as FILE_NAME
-from neural_data_smoothing3D_full import coeff2posdir, coeff2strain, pos_dir_to_input
+from neural_data_smoothing3D_full import coeff2posdir, coeff2strain, pos_dir_to_noisy_input
 from neural_data_smoothing3D_full.utils import _aver
 
 color = ["C" + str(i) for i in range(20)]
@@ -84,7 +84,7 @@ def main():
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
-	input_data = pos_dir_to_input(input_pos, input_dir)
+	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level_p=0.02, noise_level_d=0.02, L=L)
 	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
 	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
 	# print(input_dir.shape, input_data.shape, output_dir.shape)
