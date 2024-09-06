@@ -58,16 +58,16 @@ def main():
 	# # plt.show()
 	# # quit()
 
-	coeffs_mean = coeffs.mean(axis=0)
-	coeffs_std = coeffs.std(axis=0)
-	# coeffs_low = coeffs.min(axis=0)
-	# coeffs_high = coeffs.max(axis=0)
+	# coeffs_mean = coeffs.mean(axis=0)
+	# coeffs_std = coeffs.std(axis=0)
+	coeffs_low = coeffs.min(axis=0)
+	coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e5)
-	coeffs_rand = (
-		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
-	)
-	# coeffs_rand = npr.uniform(coeffs_low, coeffs_high, size=(n_training_data, output_size))
+	n_training_data = int(1e4)
+	# coeffs_rand = (
+	# 	npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
+	# )
+	coeffs_rand = npr.uniform(coeffs_low, coeffs_high, size=(n_training_data, output_size))
 
 	# for j in range(n_check):
 	# 	plt.figure(2)

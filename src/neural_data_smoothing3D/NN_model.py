@@ -27,6 +27,7 @@ class TensorConstants:
         bend_twist_stiff,
         idx_data_pts,
         dl,
+        dir0,
         chi_r,
         chi_d,
         pca,
@@ -36,6 +37,7 @@ class TensorConstants:
         self.bend_twist_stiff = torch.from_numpy(bend_twist_stiff).float()
         self.idx_data_pts = torch.from_numpy(idx_data_pts)
         self.dl = torch.from_numpy(dl).float()
+        self.dir0 = torch.from_numpy(dir0).float()
         nominal_shear = np.vstack([np.zeros([2, 100]), np.ones(100)])
         self.nominal_shear = torch.from_numpy(nominal_shear).float()
         self.chi_r = torch.from_numpy(chi_r).float() # chi_r
@@ -89,10 +91,10 @@ class CurvatureSmoothing3DLoss(nn.Module):
         input_dir = torch.stack(
             [
                 inputs[:, 3:6, :],
-                torch.cross(inputs[:, 6:9, :], inputs[:, 3:6, :], axis=1),
+                torch.cross(inputs[:, 6:9, :], inputs[:, 3:6, :], axis=1), ## d2 vector
                 inputs[:, 6:9, :],
             ],
-            axis=2,
+            axis=1, # axis=2 is for column vectors!!! should use axis=1
         )
         # inputs = torch.flatten(inputs, start_dim=1)
         pos_dir = coeff2posdir_torch(outputs, self.tensor_constants)
@@ -103,6 +105,23 @@ class CurvatureSmoothing3DLoss(nn.Module):
         ) + 0.5 * torch.sum(
             dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
         )
+        # d2 = torch.cross(inputs[:, 6:9, :], inputs[:, 3:6, :], axis=1)
+        # Phi = 0.5 * torch.sum(
+        #     pos_difference * pos_difference * self.tensor_constants.chi_r, axis=(1,2)
+        # )
+        # Phi += 0.5 * torch.sum(
+        #     (inputs[:, 3:6, :] - pos_dir[1][:,0,:,:]) * (inputs[:, 3:6, :] - pos_dir[1][:,0,:,:]) * self.tensor_constants.chi_d, axis=(1,2)
+        # )
+        # Phi += 0.5 * torch.sum(
+        #     (d2 - pos_dir[1][:,1,:,:]) * (d2 - pos_dir[1][:,1,:,:]) * self.tensor_constants.chi_d, axis=(1,2)
+        # )
+        # Phi += 0.5 * torch.sum(
+        #     (inputs[:, 6:9, :] - pos_dir[1][:,2,:,:]) * (inputs[:, 6:9, :] - pos_dir[1][:,2,:,:]) * self.tensor_constants.chi_d, axis=(1,2)
+        # )
+        # print((0.5 * torch.sum(
+        #     pos_difference * pos_difference * self.tensor_constants.chi_r, axis=(1,2))).mean(), (0.5 * torch.sum(
+        #     dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
+        # )).mean())
         return Phi.mean()
 
     def forward(self, outputs, inputs):
@@ -130,6 +149,13 @@ class CurvatureSmoothing3DNet(nn.Module):
             nn.SiLU()
         )  # nn.ReLU() # nn.GELU() # convergence speed: GELU > SiLU > ReLU
         self.linear_relu_stack = nn.Sequential(
+            # nn.Linear(input_size, 64),
+            # self.activation,
+            # nn.Linear(64, 32),
+            # self.activation,
+            # nn.Linear(32, 16),
+            # self.activation,
+            # nn.Linear(16, output_size),
             nn.Linear(input_size, 32),
             self.activation,
             nn.Linear(32, 16),

@@ -33,7 +33,7 @@ def main():
 	idx_data_pts = data["idx_data_pts"]
 	# input_data = data['input_data']
 	# true_pos = data['true_pos']
-	# true_dir = data['true_dir']
+	true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	pca = data["pca"]
 
@@ -56,7 +56,7 @@ def main():
 	# coeffs_low = coeffs.min(axis=0)
 	# coeffs_high = coeffs.max(axis=0)
 	npr.seed(2024)
-	n_training_data = int(1e4) # 1e5
+	n_training_data = int(1e5) # 1e5
 	coeffs_rand = (
 		npr.randn(n_training_data, output_size) * coeffs_std + coeffs_mean
 	)
@@ -73,7 +73,7 @@ def main():
 	strain_rand = coeff2strain(coeffs_rand, pca)
 	# # print(strain_rand[0].shape, strain_rand[1].shape)
 	# print(strain_rand.shape)
-	posdir_rand = coeff2posdir(coeffs_rand, pca, dl, nominal_shear)
+	posdir_rand = coeff2posdir(coeffs_rand, pca, dl, nominal_shear, true_dir[0,...,0])
 	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
@@ -93,6 +93,7 @@ def main():
 	idx_list = np.random.randint(
 		n_training_data, size=10
 	)  # [i*250 for i in range(10)]
+	print(idx_list)
 	fig = plt.figure(2)
 	ax = fig.add_subplot(111, projection="3d")
 	fig2, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
@@ -144,7 +145,7 @@ def main():
 			"true_kappa": strain_rand,
 			"true_shear": nominal_shear,
 		}
-		np.save(folder_name + "/training_data_set_br2.npy", training_data)
+		np.save(folder_name + "/training_data_set_br2_noisy.npy", training_data)
 	
 	plt.show()
 

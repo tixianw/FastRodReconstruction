@@ -30,17 +30,19 @@ user_data_flag = True # False #
 
 if user_data_flag:
     folder_name = 'assets' 
-    test_data_name = "training_data_set_br2.npy" # _exp2
-    # model_name = 'data_smoothing_model_br2_bending.pt'
-    model_name = 'data_smoothing_model_br2_test_3markers' # _save'
+    test_data_name = "training_data_set_br2_noisy.npy" # _uniform
+    # sample_list = [7439, 2468, 6521, 3111, 655, 3243, 4805, 944, 3608, 1849]
+    # sample_idx = 7
+    model_name = 'data_smoothing_model_br2_test_4markers_V_noise2' # _1sample'+str(sample_idx)
     idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
-    test_data = np.load(
-        test_data_file_path, allow_pickle="TRUE"
-    ).item()
+    test_data = data
+    # test_data = np.load(
+    #     test_data_file_path, allow_pickle="TRUE"
+    # ).item()
     print('Evalulating user\'s trained model...')
 else:
     with resources.path(ASSETS, MODEL_NAME_BR2) as path:
@@ -106,6 +108,7 @@ input_tensor = torch.from_numpy(input_data).float()
 idx_list = np.random.randint(
     len(input_data), size=10
 )  # [i*10 for i in range(6)]
+print(idx_list)
 
 # net.eval()
 # print('start...')
@@ -123,14 +126,14 @@ fig = plt.figure(1)
 ax = fig.add_subplot(111, projection="3d")
 fig2, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
 for ii in range(len(idx_list)):
-    i = idx_list[ii]
+    i = idx_list[ii] # sample_list[sample_idx]  # 
     with torch.no_grad():
         output = net(input_tensor[i])
         t_loss = loss_fn(output, input_tensor[i][None,:,:])
         test_loss.append(t_loss)
         kappa_output = coeff2strain(tensor2numpyVec(output), pca)
         [position_output, director_output] = strain2posdir(
-            kappa_output, dl, nominal_shear
+            kappa_output, dl, nominal_shear, true_dir[0,...,0]
         )
     ax.plot(
         position_output[0, 0, :],

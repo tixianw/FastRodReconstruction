@@ -19,7 +19,7 @@ from neural_data_smoothing3D.utils import _aver
 def main():
 
     folder_name = "assets"
-    training_data_name = "training_data_set_br2.npy" # _exp2
+    training_data_name = "training_data_set_br2_noisy.npy"
     if not os.path.exists(folder_name):
         raise FileNotFoundError("Run create_training_set.py first")
 
@@ -68,8 +68,8 @@ def main():
         [E, E, 2 * G]
     )[..., None]
 
-    power_chi_r = np.ones(n_data_pts) * 5 # 6 # 5 # 4 # 3
-    power_chi_d = np.ones(n_data_pts) * 5 # 5 # 6
+    power_chi_r = np.ones(n_data_pts) * 6 # np.array([6,6,7]) # 6 # 5 # 4 # 3
+    power_chi_d = np.ones(n_data_pts) * 3 # 5 # 6
     chi_r = 10**power_chi_r  # 1
     chi_d = 10**power_chi_d
     chi_u = 0  # 1e-5
@@ -78,6 +78,7 @@ def main():
         bend_twist_stiff,
         idx_data_pts,
         dl,
+        true_dir[0,...,0],
         chi_r,
         chi_d,
         pca,
@@ -98,15 +99,20 @@ def main():
         tensor_constants.chi_r,
         tensor_constants.chi_d,
     )
+
+    # sample_list = [7439, 2468, 6521, 3111, 655, 3243, 4805, 944, 3608, 1849]
+    # sample_idx = 7
+    # input_data_one_sample = np.stack([input_data[sample_list[sample_idx]] for i in range(int(10))], axis=0)
+
     model = CurvatureSmoothing3DModel(
         tensor_constants,
-        input_data,
+        input_data, # input_data_one_sample, # 
         num_epochs,
         batch_size=batch_size,
         labels=true_kappa,
     )
 
-    model_name = "/data_smoothing_model_br2_test_3markers"
+    model_name = "/data_smoothing_model_br2_test_4markers_V_noise2"  # _1sample"+str(sample_idx)+'_2'
     model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
     # flag_save = True
