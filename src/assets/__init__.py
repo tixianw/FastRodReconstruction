@@ -6,7 +6,7 @@ FILE_NAME_BR2 = {
 }
 MODEL_NAME_BR2 = {
     3: "data_smoothing_model_br2_3markers.pt",
-    4: "data_smoothing_model_br2_4markers.pt",
+    4: "data_smoothing_model_br2_4markers_with_noise.pt",
 }
 
 FILE_NAME_OCTOPUS = "octopus_arm_data.npy"

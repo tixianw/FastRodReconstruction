@@ -202,7 +202,6 @@ class ReconstructionNode(StageNode):
     def stage_filter_transition(self) -> Timer.PUBLISH_TIME:
         if time.time() - self.time > 2:
             self.next_stage()
-            self.time = time.time()
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
@@ -229,10 +228,10 @@ class ReconstructionNode(StageNode):
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_material_frame_calibration(self) -> Timer.PUBLISH_TIME:
-        # for i in range(self.number_of_markers):
-        #     self.model.material_frame_transformation[:2, 3, i] = np.array(
-        #         [0.027, 0.027]
-        #     )
+        for i in range(self.number_of_markers):
+            self.model.material_frame_transformation[:3, 3, i] = np.array(
+                [-0.009, 0.0055, 0.0]
+            )
         if self.model.process_material_frame_calibration(self.filter.pose):
             self.next_stage()
         return self.timer.PUBLISH_TIME.FALSE
