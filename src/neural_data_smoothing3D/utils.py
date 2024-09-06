@@ -64,13 +64,13 @@ def coeff2strain(
 
 
 def strain2posdir(
-    strain, dl, nominal_shear
+    strain, dl, nominal_shear, dir0
 ):  # np.vstack([np.zeros([2,100]), np.ones(100)])
     n_sample = len(strain)  # len(strain[0])
     n_elem = len(dl)
     position = np.zeros([n_sample, 3, n_elem + 1])
     director = np.zeros([n_sample, 3, 3, n_elem])
-    director[:, :, :, 0] = np.diag([1, -1, -1])
+    director[:, :, :, 0] = dir0 # np.diag([1, -1, -1])
     for i in range(n_sample):
         forward_path(
             dl, nominal_shear, strain[i], position[i], director[i]
@@ -78,9 +78,9 @@ def strain2posdir(
     return [position, director]
 
 
-def coeff2posdir(coeff, pca, dl, nominal_shear):
+def coeff2posdir(coeff, pca, dl, nominal_shear, dir0):
     strain = coeff2strain(coeff, pca)
-    posdir = strain2posdir(strain, dl, nominal_shear)
+    posdir = strain2posdir(strain, dl, nominal_shear, dir0)
     return posdir
 
 
@@ -205,7 +205,7 @@ def coeff2strain_torch(coeff, tensor_constants):
 
 def strain2posdir_torch(strain, tensor_constants):
     pos_dir = forward_path_torch(
-        tensor_constants.dl, tensor_constants.nominal_shear, strain
+        tensor_constants.dl, tensor_constants.nominal_shear, strain, tensor_constants.dir0
     )
     return [
         pos_dir[0][..., tensor_constants.idx_data_pts],
@@ -220,10 +220,10 @@ def coeff2posdir_torch(coeff, tensor_constants):
 
 
 # @njit(cache=True)
-def forward_path_torch(dl, shear, kappa):
+def forward_path_torch(dl, shear, kappa, dir0):
     directors = [
         torch.stack(
-            [torch.diag(torch.Tensor([1, -1, -1])) for i in range(len(kappa))],
+            [dir0 for i in range(len(kappa))], # torch.diag(torch.Tensor([1, -1, -1]))
             axis=0,
         )
     ]
@@ -238,7 +238,7 @@ def forward_path_torch(dl, shear, kappa):
 
 
 def integrate_for_position(directors, delta):
-    arrays = torch.einsum("nijk,jk->nik", directors, delta)
+    arrays = torch.einsum("njik,jk->nik", directors, delta) ## Q is row-vector-based!!!!!!!!
     positions = torch.cumsum(arrays, dim=-1)
     return positions
 
