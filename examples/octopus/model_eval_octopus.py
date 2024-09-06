@@ -42,8 +42,9 @@ if user_data_flag:
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)
     model = torch.load(model_file_path)
-    test_data = data # np.load(
-        # test_data_file_path, allow_pickle="TRUE"
+    test_data = data
+    # test_data = np.load(
+    #     test_data_file_path, allow_pickle="TRUE"
     # ).item()
     print('Evalulating user\'s trained model...')
 else:

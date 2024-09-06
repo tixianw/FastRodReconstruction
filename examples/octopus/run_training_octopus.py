@@ -74,8 +74,8 @@ def main():
 	# )[..., None]
 	# shear_stretch_stiff = A[None, None, :] * np.diag([G*4/3, G*4/3, E])[..., None]
 
-	power_chi_r = np.array([5 for i in range(n_data_pts)])  # 6 # 5 # 4 # 3
-	power_chi_d = np.array([5 for i in range(n_data_pts)])
+	power_chi_r = np.array([6 for i in range(n_data_pts)])  # 6 # 5 # 4 # 3
+	power_chi_d = np.array([3 for i in range(n_data_pts)])
 	chi_r = 10**power_chi_r  # 1
 	chi_d = 10**power_chi_d
 	chi_u = 0  # 1e-5
@@ -93,7 +93,7 @@ def main():
 		output_size,
 	)
 	## Train the model
-	num_epochs = int(2)
+	num_epochs = int(100)
 	batch_size = 128  # 128 # 100
 	print(
 		"# total samples:",
@@ -112,7 +112,7 @@ def main():
 	)
 
 	model_name = "/data_smoothing_model_octopus_test"
-	model.model_train(file_name=folder_name+model_name, check_epoch_idx=1)
+	model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
 	# flag_save = True
 
