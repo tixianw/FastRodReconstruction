@@ -202,6 +202,7 @@ class ReconstructionNode(StageNode):
     def stage_filter_transition(self) -> Timer.PUBLISH_TIME:
         if time.time() - self.time > 2:
             self.next_stage()
+            self.time = time.time()
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:

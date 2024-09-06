@@ -2,7 +2,7 @@ ASSETS = "assets"
 
 FILE_NAME_BR2 = {
     3: "BR2_arm_data.npy",
-    4: "BR2_arm_data_4markers.npy",
+    4: "BR2_arm_data_4markers_L28.npy",
 }
 MODEL_NAME_BR2 = {
     3: "data_smoothing_model_br2_3markers.pt",

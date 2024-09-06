@@ -122,7 +122,9 @@ class ReconstructionModel:
         input_tensor = torch.from_numpy(self.create_input()).float()
         output = self.net(input_tensor)
         kappa = coeff2strain(tensor2numpyVec(output), self.pca)
-        [position, director] = strain2posdir(kappa, self.dl, self.nominal_shear)
+        [position, director] = strain2posdir(
+            kappa, self.dl, self.nominal_shear, np.diag([1.0, -1.0, -1.0])
+        )
         self.result.position = position[0]
         self.result.directors = director[0]
         self.result.kappa = kappa[0]
