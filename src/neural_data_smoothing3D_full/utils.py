@@ -248,7 +248,7 @@ def forward_path_torch(dl, shear, kappa, dir0):
 
 
 def integrate_for_position(directors, delta):
-    arrays = torch.einsum("nijk,njk->nik", directors, delta)
+    arrays = torch.einsum("njik,njk->nik", directors, delta) ## Q is row-vector-based, from math it needs transpose
     positions = torch.cumsum(arrays, dim=-1)
     return positions
 

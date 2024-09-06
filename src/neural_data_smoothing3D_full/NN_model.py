@@ -104,6 +104,25 @@ class CurvatureSmoothing3DLoss(nn.Module):
             * self.tensor_constants.dl,
             axis=1,
         )
+        # print((0.5 * torch.sum(
+        #     torch.einsum(
+        #         "nik,ijk,njk->nk",
+        #         self.kappa_hat,
+        #         self.tensor_constants.bend_twist_stiff,
+        #         self.kappa_hat,
+        #     )
+        #     * _aver(self.tensor_constants.dl),
+        #     axis=1,
+        # )).mean(), (0.5 * torch.sum(
+        #     torch.einsum(
+        #         "nik,ijk,njk->nk",
+        #         self.shear_hat,
+        #         self.tensor_constants.shear_stretch_stiff,
+        #         self.shear_hat,
+        #     )
+        #     * self.tensor_constants.dl,
+        #     axis=1,
+        # )).mean())
         return V.mean()
 
     def data_matching_cost(self, inputs, outputs):
@@ -114,7 +133,7 @@ class CurvatureSmoothing3DLoss(nn.Module):
                 torch.cross(inputs[:, 6:9, :], inputs[:, 3:6, :], axis=1),
                 inputs[:, 6:9, :],
             ],
-            axis=2,
+            axis=1, # axis=1 is for row vectors
         )
         # inputs = torch.flatten(inputs, start_dim=1)
         pos_dir = coeff2posdir_torch(outputs, self.tensor_constants)
@@ -125,6 +144,10 @@ class CurvatureSmoothing3DLoss(nn.Module):
         ) + 0.5 * torch.sum(
             dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
         )
+        # print((0.5 * torch.sum(
+        #     pos_difference * pos_difference * self.tensor_constants.chi_r, axis=(1,2))).mean(), (0.5 * torch.sum(
+        #     dir_difference * dir_difference * self.tensor_constants.chi_d, axis=(1,2,3)
+        # )).mean())
         return Phi.mean()
 
     def forward(self, outputs, inputs):
@@ -306,7 +329,7 @@ def main():
     # torch.autograd.set_detect_anomaly(True)
 
     folder_name = "Data/"
-    file_name = "BR2_arm_data"  # 'pyelastica_arm_data' #
+    file_name = "octopus_arm_data"
     data = np.load(folder_name + file_name + ".npy", allow_pickle="TRUE").item()
 
     n_elem = data["model"]["n_elem"]
