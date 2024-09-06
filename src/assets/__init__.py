@@ -11,4 +11,4 @@ MODEL_NAME_BR2 = {
 
 FILE_NAME_OCTOPUS = "octopus_arm_data.npy"
 FILE_NAME_OCTOPUS_H5 = "octopus_arm_data.h5"
-MODEL_NAME_OCTOPUS = "data_smoothing_model_octopus.pt"
+MODEL_NAME_OCTOPUS = "data_smoothing_model_octopus_with_noise.pt"
