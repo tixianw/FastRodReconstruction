@@ -34,10 +34,10 @@ user_data_flag = True # False #
 
 if user_data_flag:
     folder_name = "assets" # 'Data' # 
-    test_data_name = "training_data_set_octopus.npy"
+    test_data_name = "training_data_set_octopus_noisy.npy"
     # model_name = 'data_smoothing_model_octopus_test.pt'
-    model_name = 'data_smoothing_model_octopus_test' # _save'
-    idx = 2
+    model_name = 'data_smoothing_model_octopus_test_noise2'
+    idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
     test_data_file_path = os.path.join(folder_name, test_data_name)

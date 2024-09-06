@@ -20,7 +20,7 @@ from neural_data_smoothing3D_full.utils import _aver
 def main():
 
 	folder_name = "assets"
-	training_data_name = "training_data_set_octopus.npy"
+	training_data_name = "training_data_set_octopus_noisy.npy"
 	if not os.path.exists(folder_name):
 		raise FileNotFoundError("Run create_training_set_octopus.py first")
 
@@ -111,7 +111,7 @@ def main():
 		labels=[true_kappa, true_shear],
 	)
 
-	model_name = "/data_smoothing_model_octopus_test"
+	model_name = "/data_smoothing_model_octopus_test_noise2"
 	model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
 	# flag_save = True
