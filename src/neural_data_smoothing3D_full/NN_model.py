@@ -180,7 +180,7 @@ class CurvatureSmoothing3DNet(nn.Module):
         )
 
     def forward(self, x):
-        x = x.view(-1, self.input_size)
+        x = x.reshape(-1, self.input_size) # x.view(-1, self.input_size)
         x = self.linear_relu_stack(x)
         return x
 
