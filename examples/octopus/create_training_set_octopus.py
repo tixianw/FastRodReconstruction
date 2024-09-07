@@ -10,7 +10,7 @@ import numpy as np
 import numpy.random as npr
 
 from assets import ASSETS
-from assets import FILE_NAME_OCTOPUS as FILE_NAME
+from file_global import FILE_NAME
 from neural_data_smoothing3D_full import coeff2posdir, coeff2strain, pos_dir_to_noisy_input
 from neural_data_smoothing3D_full.utils import _aver
 
@@ -149,7 +149,7 @@ def main():
 			"true_kappa": strain_rand[0],
 			"true_shear": strain_rand[1],
 		}
-		np.save(folder_name + "/training_data_set_octopus_noisy.npy", training_data)
+		np.save(folder_name + "/training_data_set_octopus_noisy_4basis.npy", training_data)
 	
 	plt.show()
 

@@ -12,8 +12,7 @@ import torch
 # from time import perf_counter
 
 from assets import ASSETS
-from assets import FILE_NAME_OCTOPUS as FILE_NAME
-from assets import MODEL_NAME_OCTOPUS as MODEL_NAME
+from file_global import FILE_NAME, MODEL_NAME
 from neural_data_smoothing3D_full import (
     CurvatureSmoothing3DNet,
     CurvatureSmoothing3DLoss,
@@ -24,19 +23,18 @@ from neural_data_smoothing3D_full import (
 from neural_data_smoothing3D_full.utils import _aver
 
 color = ["C" + str(i) for i in range(10)]
-np.random.seed(2024)
 
 ## import rod parameters
 with resources.path(ASSETS, FILE_NAME) as path:
     data = np.load(path, allow_pickle="TRUE").item()
 
-user_data_flag = False # True # 
+user_data_flag = True # False # 
 
 if user_data_flag:
     folder_name = "assets" # 'Data' # 
-    test_data_name = "training_data_set_octopus_noisy.npy"
+    test_data_name = "training_data_set_octopus_noisy_4basis.npy"
     # model_name = 'data_smoothing_model_octopus_test.pt'
-    model_name = 'data_smoothing_model_octopus_test_noise2'
+    model_name = 'data_smoothing_model_octopus_test_4basis' # noise2'
     idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
@@ -109,6 +107,7 @@ plt.legend()
 
 # print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
 input_tensor = torch.from_numpy(input_data).float()
+np.random.seed() # 2024
 idx_list = np.random.randint(
     len(input_data), size=10
 )  # [i*10 for i in range(6)]

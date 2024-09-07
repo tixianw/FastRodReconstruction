@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from assets import ASSETS
-from assets import FILE_NAME_OCTOPUS_H5 as FILE_NAME
+from file_global import FILE_NAME_READ, FILE_NAME
 from neural_data_smoothing3D_full import PCA, pos_dir_to_input
 from neural_data_smoothing3D_full.utils import _aver
 import h5py
@@ -18,8 +18,8 @@ color = ["C" + str(i) for i in range(10)]
 
 
 def main():
-	with resources.path(ASSETS, FILE_NAME) as path:
-		print('Reading file', FILE_NAME, '...')
+	with resources.path(ASSETS, FILE_NAME_READ) as path:
+		print('Reading file', FILE_NAME_READ, '...')
 		# data = np.load(path, allow_pickle="TRUE").item()
 		with h5py.File(path, 'r') as f:
 			data = {key: f[key][()] for key in f.keys()}
@@ -53,7 +53,7 @@ def main():
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 
-	n_components = np.array([8 for i in range(6)])
+	n_components = np.array([4 for i in range(6)]) # 6 # 8 # np.array([5, 6, 6, 8, 8, 3]) #  
 	pca_list = []
 	for i in range(len(n_components)):
 		pca = PCA(n_components=n_components[i])
@@ -91,7 +91,7 @@ def main():
 		data["idx_data_pts"] = idx_data_pts
 		data["input_data"] = input_data
 		data["pca"] = pca_list
-		np.save(folder_name + '/' + FILE_NAME[:-3], data)
+		np.save(folder_name + '/' + FILE_NAME[:-4], data)
 
 	for i in range(len(n_components)):
 		print('strain', i, ': mean =', pca_list[i].mean.mean(), ', std =', pca_list[i].std.std())
