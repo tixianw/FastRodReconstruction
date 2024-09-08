@@ -34,9 +34,9 @@ with resources.path(ASSETS, FILE_NAME) as path:
 user_data_flag = True # False # 
 folder_name = "assets"
 if user_data_flag:
-    test_data_name = "training_data_set_octopus_noisy.npy " # _6basis.npy" # 
+    test_data_name = "training_data_set_octopus_noisy_4basis.npy" # 
     # model_name = 'data_smoothing_model_octopus_test.pt'
-    model_name = 'data_smoothing_model_octopus_test_noise2' # 6basis' # 
+    model_name = 'data_smoothing_model_octopus_test_4basis' # noise2' # 
     idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
@@ -131,8 +131,8 @@ metadata = dict(title="Movie Test", artist="Matplotlib", comment="Movie support!
 writer = FFMpegWriter(fps=fps, metadata=metadata)
 net.eval()
 print('# of test samples:', len(input_data))
-start = 0 # 2000 # 0 # 
-end = min(start + 1000, len(input_data))
+start = 2703 # 2000 # 0 # 
+end = min(start + 901, len(input_data))
 video_save_flag = False
 with writer.saving(fig, video_name, 100):
     for k in range(int((end-start)/factor)+1):
