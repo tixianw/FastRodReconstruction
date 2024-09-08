@@ -139,44 +139,11 @@ class ReconstructionModel:
         ):
             return True
         self.lab_frame_transformation[:3, 3] = marker_base_pose[:3, 3]
-
-        # position_offset = np.zeros((3, self.number_of_markers))
-        # for i in range(self.number_of_markers):
-        #     position_offset[:2, i] = (
-        #         marker_pose[:2, 3, i] - marker_pose[:2, 3, 0]
-        #     )
-        #     position_offset[:, i] = (
-        #         marker_pose[:3, :3, i].T @ position_offset[:, i]
-        #     )
-        #     position_offset[2, i] = 0
-
-        # if hasattr(self, "position_offset"):
-        #     if np.allclose(position_offset, self.position_offset, atol=1e-4):
-        #         print(self.position_offset[:, 1], position_offset[:, 2])
-        #         return True
-        #     else:
-        #         self.position_offset = position_offset
-        #         return False
-        # else:
-        #     self.position_offset = position_offset
         return False
 
     def process_material_frame_calibration(
         self, marker_pose: np.ndarray
     ) -> bool:
-        # self.calibrate_pose(marker_pose)
-        # marker_base_pose = self.calibrated_pose[:, :, 0]
-        # new_lab_frame_transformation = self.lab_frame_transformation.copy()
-        # new_lab_frame_transformation[:3, 3] = (
-        #     self.lab_frame_transformation[:3, 3]
-        #     - 0.1 * marker_base_pose[:3, 3]
-        # )
-        # error = np.linalg.norm(new_lab_frame_transformation[:3, 3]-self.lab_frame_transformation[:3, 3])
-        # print(error)
-        # if error < 1e-4:
-        #     return True
-        # self.lab_frame_transformation = new_lab_frame_transformation
-        # return False
         return True
 
     def calibrate_pose(self, marker_pose: np.ndarray) -> None:
@@ -186,11 +153,16 @@ class ReconstructionModel:
                 @ marker_pose[:, :, i]
                 @ pose_inv(self.material_frame_transformation[:, :, i])
             )
+        for i in reversed(range(self.number_of_markers)):
+            self.calibrated_pose[:3, 3, i] = (
+                self.calibrated_pose[:3, 3, i] - self.calibrated_pose[:3, 3, 0]
+            )
 
     def create_input(self) -> np.ndarray:
-        self.input_pose[:3, 3, :] = self.calibrated_pose[
-            :3, 3, 1:
-        ] - np.expand_dims(self.calibrated_pose[:3, 3, 0], axis=1)
+        self.input_pose[:3, 3, :] = self.calibrated_pose[:3, 3, 1:]
+        # The transpose is added because the input pose is
+        # expected to be in the format of row vectors due to
+        # the setting of directors in pyelastica
         self.input_pose[:3, :3, :] = np.transpose(
             self.calibrated_pose[:3, :3, 1:], (1, 0, 2)
         )

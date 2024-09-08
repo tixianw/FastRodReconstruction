@@ -1,7 +1,7 @@
 # data files
 *.h5
 
-src/assets/octopus_arm_data.npy
+src/assets/octopus_arm_data**.npy
 
 # User created data files
 examples/**/assets/
