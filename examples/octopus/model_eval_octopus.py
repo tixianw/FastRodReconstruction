@@ -29,9 +29,8 @@ with resources.path(ASSETS, FILE_NAME) as path:
 	data = np.load(path, allow_pickle="TRUE").item()
 
 user_data_flag = True # False # 
-
+folder_name = "assets" # 'Data' # 
 if user_data_flag:
-	folder_name = "assets" # 'Data' # 
 	test_data_name = "training_data_set_octopus_noisy_4basis.npy"
 	# model_name = 'data_smoothing_model_octopus_test.pt'
 	model_name = 'data_smoothing_model_octopus_test_4basis' # noise2'
@@ -88,12 +87,12 @@ print(
 	num_epochs,
 	"batch size:",
 	batch_size,
-	"regularizations: chi_r=",
-	tensor_constants.chi_r,
-	', chi_d=',
-	tensor_constants.chi_d,
+	# "regularizations: chi_r=",
+	# tensor_constants.chi_r,
+	# ', chi_d=',
+	# tensor_constants.chi_d,
+	"min_loss:", min(losses)
 )
-print("min_loss:", min(losses))
 
 plt.figure(0)
 plt.semilogy(np.arange(len(losses))/n_iter, losses, ls="-", label="train")
@@ -112,25 +111,48 @@ idx_list = np.random.randint(
 	len(input_data), size=10
 )  # [i*10 for i in range(6)]
 
-net.eval()
-print('start counting...')
-test_loss = []
-time_cost = []
-start0 = perf_counter()
-print('total number of samples:', len(input_data))
-for i in tqdm(range(len(input_data))):
-	start = perf_counter()
-	output = net(input_tensor[i])
-	strain_output = coeff2strain(tensor2numpyVec(output), pca)
-	[position_output, director_output] = strain2posdir(strain_output, dl, true_dir[0,...,0])
-	stop = perf_counter()
-	time_cost.append(stop - start)
-	t_loss = loss_fn(output, input_tensor[i][None,:,:])
-	test_loss.append(t_loss)
-stop0 = perf_counter()
-print('total computational time:', (stop0-start0), 'averaged freqency:', len(input_data)/(stop0-start0))
-statistics = {'n_sample': len(input_data), 'time_cost': time_cost, 'test_loss': test_loss, 'total_time_cost': stop0-start0}
-np.save(folder_name + "/nnds_evaluation_statistics.npy", statistics)
+### run statistics analysis
+statistics_read_flag = True
+if not statistics_read_flag:
+	net.eval()
+	print('start counting...')
+	test_loss = []
+	time_cost = []
+	start0 = perf_counter()
+	print('total number of samples:', len(input_data))
+	for i in tqdm(range(len(input_data))):
+		with torch.no_grad():
+			start = perf_counter()
+			output = net(input_tensor[i])
+			strain_output = coeff2strain(tensor2numpyVec(output), pca)
+			[position_output, director_output] = strain2posdir(strain_output, dl, true_dir[0,...,0])
+			stop = perf_counter()
+		time_cost.append(stop - start)
+		t_loss = loss_fn(output, input_tensor[i][None,:,:])
+		test_loss.append(t_loss)
+	stop0 = perf_counter()
+	print('total computational time:', (stop0-start0), 'averaged freqency:', len(input_data)/(stop0-start0))
+	statistics = {'n_sample': len(input_data), 'time_cost': time_cost, 'test_loss': test_loss, 'total_time_cost': stop0-start0}
+	np.save(folder_name + "/nnds_evaluation_statistics.npy", statistics)
+else:
+	file_name = '/nnds_evaluation_statistics.npy'
+	data = np.load(folder_name + file_name, allow_pickle="TRUE").item()
+	n_sample = data['n_sample']
+	time_cost = data['time_cost'][1:]
+	test_loss = data['test_loss'][1:]
+	total_time_cost = data['total_time_cost']
+	print('n_sample:', n_sample, ', total_time_cost:', total_time_cost, ', average frequency:', n_sample/total_time_cost)
+	plt.figure(1)
+	plt.boxplot(time_cost)
+	plt.yscale('log')
+	plt.figure(2)
+	plt.boxplot(test_loss)
+	plt.yscale('log')
+	plt.figure(3)
+	plt.scatter(np.arange(1,n_sample), time_cost)
+	plt.figure(4)
+	plt.plot(np.arange(1,n_sample), test_loss)
+	plt.show()
 quit()
 
 net.eval()
