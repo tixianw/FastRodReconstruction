@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from time import perf_counter
-
+from tqdm import tqdm
 from assets import ASSETS
 from file_global import FILE_NAME, MODEL_NAME
 from neural_data_smoothing3D_full import (
@@ -118,7 +118,7 @@ test_loss = []
 time_cost = []
 start0 = perf_counter()
 print('total number of samples:', len(input_data))
-for i in range(len(input_data)):
+for i in tqdm(range(len(input_data))):
 	start = perf_counter()
 	output = net(input_tensor[i])
 	strain_output = coeff2strain(tensor2numpyVec(output), pca)
@@ -129,7 +129,8 @@ for i in range(len(input_data)):
 	test_loss.append(t_loss)
 stop0 = perf_counter()
 print('total computational time:', (stop0-start0), 'averaged freqency:', len(input_data)/(stop0-start0))
-statistics = {'n_sample': len(input_data), 'time_cost': time_cost, 'test_loss': test_loss}
+statistics = {'n_sample': len(input_data), 'time_cost': time_cost, 'test_loss': test_loss, 'total_time_cost': stop0-start0}
+np.save(folder_name + "/nnds_evaluation_statistics.npy", statistics)
 quit()
 
 net.eval()
