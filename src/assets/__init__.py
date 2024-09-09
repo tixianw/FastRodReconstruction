@@ -13,8 +13,9 @@ FILE_NAME_OCTOPUS = {
     0: "octopus_arm_data.npy", ## 8basis
     3: "octopus_arm_data_3basis.npy",
     4: "octopus_arm_data_4basis.npy",
+    5: "octopus_arm_data_5basis.npy",
     6: "octopus_arm_data_6basis.npy",
     8: "octopus_arm_data_8basis.npy",
 }
-FILE_NAME_OCTOPUS_H5 = "octopus_arm_data.h5" # "octopus_arm_data_demo.h5"
+FILE_NAME_OCTOPUS_H5 = "octopus_arm_data.h5"
 MODEL_NAME_OCTOPUS = "data_smoothing_model_octopus_with_noise.pt" # "data_smoothing_model_octopus_no_noise.pt" # 
