@@ -3,8 +3,7 @@
 src/assets/octopus_**.npy
 
 # plotting files
-examples/octopus/paper_plotting.py
-examples/octopus/format.py
+examples/octopus_plotting/
 
 # User created data files
 examples/**/assets/
