@@ -65,28 +65,28 @@ idx_data_pts = data["idx_data_pts"]
 pca = data["pca"]
 
 
-## import demo simulation data
-DEMO_FILE_NAME = "octopus_arm_data_demo.h5"
-with resources.path(ASSETS, DEMO_FILE_NAME) as path:
-		print('Reading file', DEMO_FILE_NAME, '...')
-		with h5py.File(path, 'r') as f:
-			demo_data = {key: f[key][()] for key in f.keys()}
-## data point setup
-true_pos = demo_data['true_pos']
-true_dir = demo_data['true_dir']
-true_kappa = demo_data["true_kappa"]
-true_shear = demo_data['true_shear']
-input_pos = true_pos[..., idx_data_pts]
-input_dir = true_dir[..., idx_data_pts]
-input_data = pos_dir_to_input(input_pos, input_dir)
-print('# of samples in small data set', len(input_data))
+# ## import demo simulation data
+# DEMO_FILE_NAME = "octopus_arm_data_demo.h5"
+# with resources.path(ASSETS, DEMO_FILE_NAME) as path:
+# 		print('Reading file', DEMO_FILE_NAME, '...')
+# 		with h5py.File(path, 'r') as f:
+# 			demo_data = {key: f[key][()] for key in f.keys()}
+# ## data point setup
+# true_pos = demo_data['true_pos']
+# true_dir = demo_data['true_dir']
+# true_kappa = demo_data["true_kappa"]
+# true_shear = demo_data['true_shear']
+# input_pos = true_pos[..., idx_data_pts]
+# input_dir = true_dir[..., idx_data_pts]
+# input_data = pos_dir_to_input(input_pos, input_dir)
+# print('# of samples in small data set', len(input_data))
 
-# ## test data
-# input_data = test_data["input_data"]
-# true_pos = test_data["true_pos"]
-# true_dir = test_data["true_dir"]
-# true_kappa = test_data["true_kappa"]
-# true_shear = test_data['true_shear']
+## test data
+input_data = test_data["input_data"]
+true_pos = test_data["true_pos"]
+true_dir = test_data["true_dir"]
+true_kappa = test_data["true_kappa"]
+true_shear = test_data['true_shear']
 
 ## load trained model
 num_epochs = model["num_epochs"]
@@ -101,6 +101,8 @@ loss_fn = CurvatureSmoothing3DLoss(tensor_constants)
 loss_fn.load_state_dict(model['loss_fn'])
 losses, vlosses, test_loss = model["losses"]
 n_iter = int(len(losses) / len(vlosses))
+# print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
+input_tensor = torch.from_numpy(input_data).float()
 
 print(
     "# epochs:",
@@ -114,16 +116,21 @@ print(
     "min_loss:", min(losses)
 )
 
-
-# print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
-input_tensor = torch.from_numpy(input_data).float()
-
+## import simulation time data
+TIME_FILE_NAME = "octopus_time_data.h5"
+with resources.path(ASSETS, TIME_FILE_NAME) as path:
+        print('Reading file', TIME_FILE_NAME, '...')
+        with h5py.File(path, 'r') as f:
+            time_data = {key: f[key][()] for key in f.keys()}
+## data point setup
+n_simulations = time_data['n_simulations']
+time_list = time_data['time_list']
 
 fig = plt.figure(1)
 ax = fig.add_subplot(111, projection="3d")
 fig2, axes = plt.subplots(ncols=3, nrows=2, sharex=True, figsize=(16, 5))
 fps = 60
-factor = 5
+factor = 1
 file_name = 'octopus_arm_tracking'
 video_name = folder_name + '/' + file_name + ".mov"
 FFMpegWriter = manimation.writers["ffmpeg"]
@@ -131,8 +138,9 @@ metadata = dict(title="Movie Test", artist="Matplotlib", comment="Movie support!
 writer = FFMpegWriter(fps=fps, metadata=metadata)
 net.eval()
 print('# of test samples:', len(input_data))
-start = 2703 # 2000 # 0 # 
-end = min(start + 901, len(input_data))
+idx_simulation = 61 # highest loss among targets in work space
+start = time_list[idx_simulation]
+end = time_list[idx_simulation+1] # min(start + 901, len(input_data))
 video_save_flag = False
 with writer.saving(fig, video_name, 100):
     for k in range(int((end-start)/factor)+1):
@@ -190,6 +198,7 @@ with writer.saving(fig, video_name, 100):
             plt.pause(0.001)
         else:
             writer.grab_frame()
+        break
 
 
 plt.show()

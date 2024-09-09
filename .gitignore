@@ -1,7 +1,10 @@
 # data files
 *.h5
+src/assets/octopus_**.npy
 
-src/assets/octopus_arm_data**.npy
+# plotting files
+examples/octopus/paper_plotting.py
+examples/octopus/format.py
 
 # User created data files
 examples/**/assets/
