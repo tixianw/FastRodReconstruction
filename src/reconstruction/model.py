@@ -7,6 +7,7 @@ import torch
 
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 from neural_data_smoothing3D import (
+    CurvatureSmoothing3DLoss,
     CurvatureSmoothing3DNet,
     coeff2strain,
     pos_dir_to_input,
@@ -96,11 +97,13 @@ class ReconstructionModel:
         self.output_size = self.tensor_constants.output_size
         self.net = CurvatureSmoothing3DNet(self.input_size, self.output_size)
         self.net.load_state_dict(model_data["model"])
+        self.loss_fn = CurvatureSmoothing3DLoss(self.tensor_constants)
+        self.loss_fn.load_state_dict(model_data["loss_fn"])
 
         self.number_of_elements = self.n_elem
 
         self.result = ReconstructionResult(self.number_of_elements)
-        self.cost = np.nan
+        self.cost = np.array([np.nan])
 
     def __str__(self) -> str:
         return (
@@ -109,7 +112,7 @@ class ReconstructionModel:
             f"\n    model_file_name={self.model_file_name}\n)"
         )
 
-    def reconstruct(self, marker_pose: np.ndarray) -> None:
+    def reconstruct(self, marker_pose: np.ndarray) -> tuple:
 
         # calibrate the pose
         self.calibrate_pose(marker_pose)
@@ -118,10 +121,10 @@ class ReconstructionModel:
         input_tensor = torch.from_numpy(self.create_input()).float()
 
         # get the output from the neural network
-        output = self.net(input_tensor)
+        output_tensor = self.net(input_tensor)
 
         # convert the output to strain, position and director
-        kappa = coeff2strain(tensor2numpyVec(output), self.pca)
+        kappa = coeff2strain(tensor2numpyVec(output_tensor), self.pca)
         [position, director] = strain2posdir(
             kappa, self.dl, self.nominal_shear, self.base_pose[:3, :3]
         )
@@ -130,6 +133,12 @@ class ReconstructionModel:
         self.result.position = position[0]
         self.result.directors = director[0]
         self.result.kappa = kappa[0]
+        return input_tensor, output_tensor
+
+    def compute_cost(self, input_tensor, output_tensor) -> None:
+        self.cost = np.array(
+            [self.loss_fn(output_tensor, input_tensor).detach().numpy()]
+        )
 
     def process_lab_frame_calibration(self, marker_pose: np.ndarray) -> bool:
         marker_base_pose = marker_pose[:, :, 0]
