@@ -78,7 +78,7 @@ def main():
 	# power_chi_d = np.array([3 for i in range(n_data_pts)])
 	# chi_r = 10**power_chi_r  # 1
 	# chi_d = 10**power_chi_d
-	chi = 1e5
+	chi = 1e4 # 1e5
 	chi_d = np.ones(n_data_pts) * chi / 8
 	chi_r = np.ones(n_data_pts) * chi / L**2
 
@@ -113,7 +113,7 @@ def main():
 		labels=[true_kappa, true_shear],
 	)
 
-	model_name = "/data_smoothing_model_octopus_new_4basis" # _test_4basis" # _noise2"
+	model_name = "/data_smoothing_model_octopus_new_4basis2" # _test_4basis" # _noise2"
 	model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
 	# flag_save = True

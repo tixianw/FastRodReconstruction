@@ -33,7 +33,7 @@ folder_name = "assets" # 'Data' #
 if user_data_flag:
 	test_data_name = "training_data_set_octopus_noisy_4basis.npy"
 	# model_name = 'data_smoothing_model_octopus_test.pt'
-	model_name = 'data_smoothing_model_octopus_new_4basis' # _test_4basis' # noise2'
+	model_name = 'data_smoothing_model_octopus_new_4basis2' # _test_4basis' # noise2'
 	idx = 100
 	model_name += '_epoch%03d'%(idx) + '.pt'
 	model_file_path = os.path.join(folder_name, model_name)
