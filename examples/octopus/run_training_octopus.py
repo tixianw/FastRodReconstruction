@@ -96,7 +96,7 @@ def main():
 	)
 	## Train the model
 	num_epochs = int(100)
-	batch_size = 128  # 128 # 100
+	batch_size = 128 # 64 # 128 # 100
 	print(
 		"# total samples:",
 		len(input_data),
@@ -113,7 +113,7 @@ def main():
 		labels=[true_kappa, true_shear],
 	)
 
-	model_name = "/data_smoothing_model_octopus_new_4basis2" # _test_4basis" # _noise2"
+	model_name = "/data_smoothing_model_octopus_new_4basis" # _batch64" # _test_4basis" # _noise2"
 	model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
 	# flag_save = True
