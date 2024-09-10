@@ -123,7 +123,7 @@ def main():
 		for j in range(3):
 			axes[j].plot(s[1:-1], strain_rand[i, j, :])
 
-	flag_save = 1
+	flag_save = 0
 
 	if flag_save:
 		import os

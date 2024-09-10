@@ -69,11 +69,13 @@ def main():
         [E, E, 2 * G]
     )[..., None]
 
-    power_chi_r = np.ones(n_data_pts) * 6 # np.array([6,6,7]) # 6 # 5 # 4 # 3
-    power_chi_d = np.ones(n_data_pts) * 3 # 5 # 6
-    chi_r = 10**power_chi_r  # 1
-    chi_d = 10**power_chi_d
-    chi_u = 0  # 1e-5
+    # power_chi_r = np.ones(n_data_pts) * 6 # np.array([6,6,7]) # 6 # 5 # 4 # 3
+    # power_chi_d = np.ones(n_data_pts) * 3 # 5 # 6
+    # chi_r = 10**power_chi_r  # 1
+    # chi_d = 10**power_chi_d
+    chi = 1e4
+    chi_d = np.ones(n_data_pts) * chi / 8
+    chi_r = np.ones(n_data_pts) * chi / L**2
 
     tensor_constants = TensorConstants(
         bend_twist_stiff,
@@ -113,7 +115,7 @@ def main():
         labels=true_kappa,
     )
 
-    model_name = "/data_smoothing_model_br2_test_4markers_V_noise2"  # _1sample"+str(sample_idx)+'_2'
+    model_name = "/data_smoothing_model_br2_new" # _test_4markers_V_noise2"  # _1sample"+str(sample_idx)+'_2'
     model.model_train(file_name=folder_name+model_name, check_epoch_idx=20)
 
     # flag_save = True

@@ -13,7 +13,7 @@ import torch
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 idx = 4
 FILE_NAME = FILE_NAME_BR2[idx]
-MODEL_NAME = MODEL_NAME_BR2[idx]
+MODEL_NAME = MODEL_NAME_BR2
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
     CurvatureSmoothing3DLoss,
@@ -36,7 +36,7 @@ if user_data_flag:
     test_data_name = "training_data_set_br2_noisy.npy" # _uniform
     # sample_list = [7439, 2468, 6521, 3111, 655, 3243, 4805, 944, 3608, 1849]
     # sample_idx = 7
-    model_name = 'data_smoothing_model_br2_test_4markers_V_noise2' # _1sample'+str(sample_idx)
+    model_name = 'data_smoothing_model_br2_new' # _test_4markers_V_noise2' # _1sample'+str(sample_idx)
     idx = 100
     model_name += '_epoch%03d'%(idx) + '.pt'
     model_file_path = os.path.join(folder_name, model_name)
