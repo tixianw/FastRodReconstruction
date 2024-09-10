@@ -33,7 +33,7 @@ class ReconstructionModel:
         data_file_name: Optional[str] = None,
         model_file_name: Optional[str] = None,
         number_of_markers: int = 4,
-        base_pose: np.ndarray = np.diag([1, -1, -1, 1]),
+        base_pose: np.ndarray = np.diag([1.0, -1.0, -1.0, 1.0]),
     ):
 
         self.number_of_markers = number_of_markers
@@ -67,14 +67,14 @@ class ReconstructionModel:
                 + MODEL_NAME_BR2[self.number_of_markers]
             )
 
+        self.base_pose = base_pose
         self.calibrated_pose = np.zeros((4, 4, self.number_of_markers))
         self.input_pose = np.repeat(
-            np.expand_dims(np.diag([1.0, -1.0, -1.0, 1.0]), axis=2),
+            np.expand_dims(self.base_pose, axis=2),
             self.number_of_markers - 1,
             axis=2,
         )
 
-        self.base_pose = base_pose
         self.lab_frame_transformation = np.identity(4)
         self.material_frame_transformation = np.repeat(
             np.expand_dims(np.identity(4), axis=2),
@@ -123,7 +123,7 @@ class ReconstructionModel:
         # convert the output to strain, position and director
         kappa = coeff2strain(tensor2numpyVec(output), self.pca)
         [position, director] = strain2posdir(
-            kappa, self.dl, self.nominal_shear, np.diag([1.0, -1.0, -1.0])
+            kappa, self.dl, self.nominal_shear, self.base_pose[:3, :3]
         )
 
         # update the result with the new marker data
