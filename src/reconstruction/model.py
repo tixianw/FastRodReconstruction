@@ -82,18 +82,12 @@ class ReconstructionModel:
             axis=2,
         )
 
-        # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
-        # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
-        # load the model from file
-        # data_folder = "../neural_data_smoothing3D/Data/"
-
         self.n_elem = rod_data["model"]["n_elem"]
         # L = rod_data['model']['L']
         # radius = rod_data['model']['radius']
         # s = rod_data['model']['s']
         self.dl = rod_data["model"]["dl"]
         self.nominal_shear = rod_data["model"]["nominal_shear"]
-        # idx_data_pts = rod_data['idx_data_pts']
         self.pca = rod_data["pca"]
 
         self.tensor_constants = model_data["tensor_constants"]
@@ -106,6 +100,7 @@ class ReconstructionModel:
         self.number_of_elements = self.n_elem
 
         self.result = ReconstructionResult(self.number_of_elements)
+        self.cost = np.nan
 
     def __str__(self) -> str:
         return (
@@ -114,21 +109,27 @@ class ReconstructionModel:
             f"\n    model_file_name={self.model_file_name}\n)"
         )
 
-    def reconstruct(self, marker_pose: np.ndarray) -> ReconstructionResult:
+    def reconstruct(self, marker_pose: np.ndarray) -> None:
 
+        # calibrate the pose
         self.calibrate_pose(marker_pose)
 
-        # update the result with the new marker data
+        # create the input tensor
         input_tensor = torch.from_numpy(self.create_input()).float()
+
+        # get the output from the neural network
         output = self.net(input_tensor)
+
+        # convert the output to strain, position and director
         kappa = coeff2strain(tensor2numpyVec(output), self.pca)
         [position, director] = strain2posdir(
             kappa, self.dl, self.nominal_shear, np.diag([1.0, -1.0, -1.0])
         )
+
+        # update the result with the new marker data
         self.result.position = position[0]
         self.result.directors = director[0]
         self.result.kappa = kappa[0]
-        return self.result
 
     def process_lab_frame_calibration(self, marker_pose: np.ndarray) -> bool:
         marker_base_pose = marker_pose[:, :, 0]

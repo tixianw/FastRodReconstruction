@@ -154,6 +154,13 @@ class ReconstructionNode(StageNode):
                 qos_profile=100,
                 node=self,
             ),
+            "cost": NDArrayPublisher(
+                topic="/reconstruction/cost",
+                shape=(1,),
+                axis_labels=("cost",),
+                qos_profile=100,
+                node=self,
+            ),
         }
 
         # Initialize timer
@@ -265,6 +272,7 @@ class ReconstructionNode(StageNode):
         self.publish("position", self.model.result.position)
         self.publish("directors", self.model.result.directors)
         self.publish("kappa", self.model.result.kappa)
+        self.publish("cost", np.array([self.model.cost]))
 
     def publish(
         self,
