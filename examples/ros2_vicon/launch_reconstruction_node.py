@@ -342,11 +342,6 @@ def main(log_level: str, source: str, markers: int):
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source, markers),
         log_level=log_level,
-        # model_resource=ReconstructionModelResource(
-        #     rotation_offset=-155.0,
-        #     translation_offset=np.array([-0.02, -0.03, 0.0]),
-        #     # translation_offset=np.array([0.0, 0.0, 0.0]),
-        # ),
     )
     try:
         node.start()
