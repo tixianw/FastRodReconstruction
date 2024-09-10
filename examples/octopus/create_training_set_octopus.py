@@ -149,7 +149,7 @@ def main():
 			"true_kappa": strain_rand[0],
 			"true_shear": strain_rand[1],
 		}
-		np.save(folder_name + "/training_data_set_octopus_noisy_4basis.npy", training_data)
+		np.save(folder_name + "/training_data_set_octopus_noisy_5basis.npy", training_data)
 	
 	plt.show()
 

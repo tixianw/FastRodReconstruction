@@ -33,7 +33,7 @@ folder_name = "assets" # 'Data' #
 if user_data_flag:
 	test_data_name = "training_data_set_octopus_noisy_4basis.npy"
 	# model_name = 'data_smoothing_model_octopus_test.pt'
-	model_name = 'data_smoothing_model_octopus_test_4basis' # noise2'
+	model_name = 'data_smoothing_model_octopus_new_4basis' # _test_4basis' # noise2'
 	idx = 100
 	model_name += '_epoch%03d'%(idx) + '.pt'
 	model_file_path = os.path.join(folder_name, model_name)
@@ -106,7 +106,7 @@ plt.legend()
 
 # print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
 input_tensor = torch.from_numpy(input_data).float()
-np.random.seed() # 2024
+np.random.seed(2024) # 
 idx_list = np.random.randint(
 	len(input_data), size=10
 )  # [i*10 for i in range(6)]
