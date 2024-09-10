@@ -154,6 +154,13 @@ class ReconstructionNode(StageNode):
                 qos_profile=100,
                 node=self,
             ),
+            "cost": NDArrayPublisher(
+                topic="/reconstruction/cost",
+                shape=(1,),
+                axis_labels=("cost",),
+                qos_profile=100,
+                node=self,
+            ),
         }
 
         # Initialize timer
@@ -205,7 +212,7 @@ class ReconstructionNode(StageNode):
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
-        lab_angle = -100.0 / 180.0 * np.pi  # 155
+        lab_angle = -100.0 / 180.0 * np.pi
         self.model.lab_frame_transformation[:3, :3] = np.array(
             [
                 [np.cos(lab_angle), -np.sin(lab_angle), 0.0],
@@ -238,9 +245,10 @@ class ReconstructionNode(StageNode):
 
     def stage_reconstruction(self) -> Timer.PUBLISH_TIME:
         self.log_debug(f"Reconstructing...")
-        self.model.reconstruct(
+        input_tensor, output_tensor = self.model.reconstruct(
             marker_pose=self.filter.pose,
         )
+        self.model.compute_cost(input_tensor, output_tensor)
         new_time = time.time()
         self.log_info(
             f"Reconstructing... at rate: {1/(new_time-self.time):.2f} Hz. Done!"
@@ -265,6 +273,7 @@ class ReconstructionNode(StageNode):
         self.publish("position", self.model.result.position)
         self.publish("directors", self.model.result.directors)
         self.publish("kappa", self.model.result.kappa)
+        self.publish("cost", self.model.cost)
 
     def publish(
         self,

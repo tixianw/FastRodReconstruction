@@ -229,6 +229,13 @@ def main(
                 axis_labels=("kappa", "element"),
             ),
         ),
+        "cost": SubscriptionInfo(
+            topic="/reconstruction/cost",
+            message=NDArrayMessage(
+                shape=(1,),
+                axis_labels=("cost",),
+            ),
+        ),
     }
     writer_info = WriterInfo(
         file_name=file_name,

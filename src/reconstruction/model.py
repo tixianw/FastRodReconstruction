@@ -7,6 +7,7 @@ import torch
 
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 from neural_data_smoothing3D import (
+    CurvatureSmoothing3DLoss,
     CurvatureSmoothing3DNet,
     coeff2strain,
     pos_dir_to_input,
@@ -33,7 +34,7 @@ class ReconstructionModel:
         data_file_name: Optional[str] = None,
         model_file_name: Optional[str] = None,
         number_of_markers: int = 4,
-        base_pose: np.ndarray = np.diag([1, -1, -1, 1]),
+        base_pose: np.ndarray = np.diag([1.0, -1.0, -1.0, 1.0]),
     ):
 
         self.number_of_markers = number_of_markers
@@ -67,14 +68,14 @@ class ReconstructionModel:
                 + MODEL_NAME_BR2[self.number_of_markers]
             )
 
+        self.base_pose = base_pose
         self.calibrated_pose = np.zeros((4, 4, self.number_of_markers))
         self.input_pose = np.repeat(
-            np.expand_dims(np.diag([1.0, -1.0, -1.0, 1.0]), axis=2),
+            np.expand_dims(self.base_pose, axis=2),
             self.number_of_markers - 1,
             axis=2,
         )
 
-        self.base_pose = base_pose
         self.lab_frame_transformation = np.identity(4)
         self.material_frame_transformation = np.repeat(
             np.expand_dims(np.identity(4), axis=2),
@@ -82,18 +83,12 @@ class ReconstructionModel:
             axis=2,
         )
 
-        # self.data_file_name = data_file_name if data_file_name else ASSETS + "/" + FILE_NAME
-        # self.model_file_name = model_file_name if model_file_name else ASSETS + "/" + MODEL_NAME
-        # load the model from file
-        # data_folder = "../neural_data_smoothing3D/Data/"
-
         self.n_elem = rod_data["model"]["n_elem"]
         # L = rod_data['model']['L']
         # radius = rod_data['model']['radius']
         # s = rod_data['model']['s']
         self.dl = rod_data["model"]["dl"]
         self.nominal_shear = rod_data["model"]["nominal_shear"]
-        # idx_data_pts = rod_data['idx_data_pts']
         self.pca = rod_data["pca"]
 
         self.tensor_constants = model_data["tensor_constants"]
@@ -102,10 +97,13 @@ class ReconstructionModel:
         self.output_size = self.tensor_constants.output_size
         self.net = CurvatureSmoothing3DNet(self.input_size, self.output_size)
         self.net.load_state_dict(model_data["model"])
+        self.loss_fn = CurvatureSmoothing3DLoss(self.tensor_constants)
+        self.loss_fn.load_state_dict(model_data["loss_fn"])
 
         self.number_of_elements = self.n_elem
 
         self.result = ReconstructionResult(self.number_of_elements)
+        self.cost = np.array([np.nan])
 
     def __str__(self) -> str:
         return (
@@ -114,21 +112,33 @@ class ReconstructionModel:
             f"\n    model_file_name={self.model_file_name}\n)"
         )
 
-    def reconstruct(self, marker_pose: np.ndarray) -> ReconstructionResult:
+    def reconstruct(self, marker_pose: np.ndarray) -> tuple:
 
+        # calibrate the pose
         self.calibrate_pose(marker_pose)
 
-        # update the result with the new marker data
+        # create the input tensor
         input_tensor = torch.from_numpy(self.create_input()).float()
-        output = self.net(input_tensor)
-        kappa = coeff2strain(tensor2numpyVec(output), self.pca)
+
+        # get the output from the neural network
+        output_tensor = self.net(input_tensor)
+
+        # convert the output to strain, position and director
+        kappa = coeff2strain(tensor2numpyVec(output_tensor), self.pca)
         [position, director] = strain2posdir(
-            kappa, self.dl, self.nominal_shear, np.diag([1.0, -1.0, -1.0])
+            kappa, self.dl, self.nominal_shear, self.base_pose[:3, :3]
         )
+
+        # update the result with the new marker data
         self.result.position = position[0]
         self.result.directors = director[0]
         self.result.kappa = kappa[0]
-        return self.result
+        return input_tensor, output_tensor
+
+    def compute_cost(self, input_tensor, output_tensor) -> None:
+        self.cost = np.array(
+            [self.loss_fn(output_tensor, input_tensor).detach().numpy()]
+        )
 
     def process_lab_frame_calibration(self, marker_pose: np.ndarray) -> bool:
         marker_base_pose = marker_pose[:, :, 0]
