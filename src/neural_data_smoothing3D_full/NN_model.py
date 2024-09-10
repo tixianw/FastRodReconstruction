@@ -206,6 +206,7 @@ class CurvatureSmoothing3DModel:
         batch_size=128,
         eval_batch_size=100,
         labels=None,
+        test_flag=True,
     ):
         self.tensor_constants = tensor_constants
         self.input_size = tensor_constants.input_size
@@ -220,7 +221,11 @@ class CurvatureSmoothing3DModel:
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
         self.labels = labels
-        self.train_valid_test_split()
+        self.test_flag = test_flag
+        if test_flag:
+            self.train_valid_test_split()
+        else:
+            self.train_valid_split()
         self.train_losses = []
         self.validation_losses = []
 
@@ -246,6 +251,26 @@ class CurvatureSmoothing3DModel:
             len(validation_set),
             "# test samples:",
             len(test_set),
+        )
+
+    def train_valid_split(self):
+        generator = torch.Generator().manual_seed(2024)
+        training_set, validation_set = random_split(
+            self.input_data, [0.8, 0.2], generator=generator
+        )
+        self.training_loader = DataLoader(
+            training_set, batch_size=self.batch_size, shuffle=True
+        )
+        self.validation_loader = DataLoader(
+            validation_set, batch_size=self.eval_batch_size, shuffle=True
+        )
+        self.num_train_interation = len(self.training_loader)
+        print(
+            "# training samples:",
+            len(training_set),
+            "# validation samples:",
+            len(validation_set),
+            'No test samples',
         )
 
     ### Train the model
@@ -292,15 +317,16 @@ class CurvatureSmoothing3DModel:
             )
 
             if (epoch_idx+1)%check_epoch_idx==0 or ((epoch_idx+1)%check_epoch_idx and epoch_idx==self.num_epochs-1):
-
-                self.test_loss = 0.0
-                with torch.no_grad():
-                    for i, test_inputs in enumerate(self.test_loader):
-                        test_outputs = self.net(test_inputs)
-                        t_loss = self.loss_fn(test_outputs, test_inputs)
-                        self.test_loss += t_loss.item()
-                    self.test_loss /= i + 1
-                print(f"test loss at epoch {epoch_idx+1:d}: {self.test_loss:.8f}")
+                self.test_loss = None
+                if self.test_flag:
+                    self.test_loss = 0.0
+                    with torch.no_grad():
+                        for i, test_inputs in enumerate(self.test_loader):
+                            test_outputs = self.net(test_inputs)
+                            t_loss = self.loss_fn(test_outputs, test_inputs)
+                            self.test_loss += t_loss.item()
+                        self.test_loss /= i + 1
+                    print(f"test loss at epoch {epoch_idx+1:d}: {self.test_loss:.8f}")
                 self.model_save(file_name, epoch_idx)
 
     def model_save(self, file_name, epoch_idx):
