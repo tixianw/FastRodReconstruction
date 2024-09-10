@@ -13,7 +13,7 @@ import torch
 from assets import ASSETS, FILE_NAME_BR2, MODEL_NAME_BR2
 idx = 4
 FILE_NAME = FILE_NAME_BR2[idx]
-MODEL_NAME = MODEL_NAME_BR2
+MODEL_NAME = MODEL_NAME_BR2[idx]
 from neural_data_smoothing3D import (
     CurvatureSmoothing3DNet,
     CurvatureSmoothing3DLoss,
