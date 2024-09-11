@@ -207,6 +207,7 @@ class CurvatureSmoothing3DModel:
         eval_batch_size=100,
         labels=None,
         test_flag=True,
+        random_seed=2024,
     ):
         self.tensor_constants = tensor_constants
         self.input_size = tensor_constants.input_size
@@ -222,6 +223,7 @@ class CurvatureSmoothing3DModel:
         self.eval_batch_size = eval_batch_size
         self.labels = labels
         self.test_flag = test_flag
+        self.random_seed = random_seed
         if test_flag:
             self.train_valid_test_split()
         else:
@@ -232,7 +234,7 @@ class CurvatureSmoothing3DModel:
     def train_valid_test_split(self):
         # training_data = torch.from_numpy(self.input_data).float()
         # training_dataset = MyDataset(training_data, self.labels)
-        generator = torch.Generator().manual_seed(2024)
+        generator = torch.Generator().manual_seed(self.random_seed)
         training_set, validation_set, test_set = random_split(
             self.input_data, [0.8, 0.1, 0.1], generator=generator
         )
@@ -254,7 +256,7 @@ class CurvatureSmoothing3DModel:
         )
 
     def train_valid_split(self):
-        generator = torch.Generator().manual_seed(2024)
+        generator = torch.Generator().manual_seed(self.random_seed)
         training_set, validation_set = random_split(
             self.input_data, [0.8, 0.2], generator=generator
         )
