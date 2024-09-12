@@ -177,6 +177,13 @@ class CurvatureSmoothing3DNet(nn.Module):
             nn.Linear(128, 64),
             self.activation,
             nn.Linear(64, output_size),
+            # nn.Linear(input_size, 128),
+            # self.activation,
+            # nn.Linear(128, 64),
+            # self.activation,
+            # nn.Linear(64, 32),
+            # self.activation,
+            # nn.Linear(32, output_size),
         )
 
     def forward(self, x):
@@ -216,7 +223,7 @@ class CurvatureSmoothing3DModel:
         self.loss_fn = CurvatureSmoothing3DLoss(
             tensor_constants
         )  # CustomLoss(tensor_constants) #
-        self.optimizer = optim.Adam(self.net.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.net.parameters(), lr=0.001) # 0.005
         self.input_data = torch.from_numpy(input_data).float()
         self.num_epochs = num_epochs
         self.batch_size = batch_size
