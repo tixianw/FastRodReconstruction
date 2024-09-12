@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import click
 import numpy as np
+from experiment_setting import ExpConfig
 
 import ros2_vicon
 from reconstruction import ReconstructionModel
@@ -29,6 +30,7 @@ class ReconstructionNode(StageNode):
     def __init__(
         self,
         subscription_topics: Tuple[str],
+        exp_config: ExpConfig,
         reconstruction_rate: float = 60.0,
         model_resource: Optional[ReconstructionModelResource] = None,
         log_level: str = "info",
@@ -45,6 +47,7 @@ class ReconstructionNode(StageNode):
         )
 
         self.subscription_topics = subscription_topics
+        self.exp_config = exp_config
         self.reconstruction_rate = reconstruction_rate
 
         # Initialize subscribers
@@ -156,7 +159,7 @@ class ReconstructionNode(StageNode):
             ),
             "cost": NDArrayPublisher(
                 topic="/reconstruction/cost",
-                shape=(1,),
+                shape=self.model.cost.shape,
                 axis_labels=("cost",),
                 qos_profile=100,
                 node=self,
@@ -212,20 +215,34 @@ class ReconstructionNode(StageNode):
         return self.timer.PUBLISH_TIME.FALSE
 
     def stage_lab_frame_calibration(self) -> Timer.PUBLISH_TIME:
-        lab_angle = -100.0 / 180.0 * np.pi
         self.model.lab_frame_transformation[:3, :3] = np.array(
             [
-                [np.cos(lab_angle), -np.sin(lab_angle), 0.0],
-                [np.sin(lab_angle), np.cos(lab_angle), 0.0],
+                [
+                    np.cos(self.exp_config.lab_angle),
+                    -np.sin(self.exp_config.lab_angle),
+                    0.0,
+                ],
+                [
+                    np.sin(self.exp_config.lab_angle),
+                    np.cos(self.exp_config.lab_angle),
+                    0.0,
+                ],
                 [0.0, 0.0, 1.0],
             ]
         )
-        material_angle = lab_angle
         for i in range(self.number_of_markers):
             self.model.material_frame_transformation[:3, :3, i] = np.array(
                 [
-                    [np.cos(material_angle), -np.sin(material_angle), 0.0],
-                    [np.sin(material_angle), np.cos(material_angle), 0.0],
+                    [
+                        np.cos(self.exp_config.material_angle),
+                        -np.sin(self.exp_config.material_angle),
+                        0.0,
+                    ],
+                    [
+                        np.sin(self.exp_config.material_angle),
+                        np.cos(self.exp_config.material_angle),
+                        0.0,
+                    ],
                     [0.0, 0.0, 1.0],
                 ]
             )
@@ -236,8 +253,8 @@ class ReconstructionNode(StageNode):
 
     def stage_material_frame_calibration(self) -> Timer.PUBLISH_TIME:
         for i in range(self.number_of_markers):
-            self.model.material_frame_transformation[:3, 3, i] = np.array(
-                [-0.009, 0.0055, 0.0]
+            self.model.material_frame_transformation[:3, 3, i] = (
+                self.exp_config.material_frame_translation
             )
         if self.model.process_material_frame_calibration(self.filter.pose):
             self.next_stage()
@@ -336,11 +353,18 @@ def set_subsciption_topics(source: str, markers: int) -> Tuple[str]:
     default=4,
     help="Set the number of markers",
 )
-def main(log_level: str, source: str, markers: int):
+@click.option(
+    "--exp",
+    type=int,
+    default=0,
+    help="Set the experiment number",
+)
+def main(log_level: str, source: str, markers: int, exp: int) -> None:
     ros2_vicon.init()
 
     node = ReconstructionNode(
         subscription_topics=set_subsciption_topics(source, markers),
+        exp_config=ExpConfig.load(exp),
         log_level=log_level,
     )
     try:
