@@ -8,13 +8,11 @@ MODEL_NAME_BR2 = {
 }
 
 FILE_NAME_OCTOPUS = {
-    0: "octopus_arm_data.npy",  ## 8basis
-    3: "octopus_arm_data_3basis.npy",
-    4: "octopus_arm_data_4basis.npy",
-    5: "octopus_arm_data_5basis.npy",
-    6: "octopus_arm_data_6basis.npy",
-    8: "octopus_arm_data_8basis.npy",
+    0: "octopus_arm_data.npy",
 }
+for i in range(3,9):
+    FILE_NAME_OCTOPUS[i] = "octopus_arm_data_%dbasis.npy"%i
+
 MODEL_NAME_OCTOPUS = {
     0: "data_smoothing_model_octopus.pt"
 }

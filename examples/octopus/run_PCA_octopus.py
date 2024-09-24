@@ -53,7 +53,7 @@ def main():
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 
-	n_components = np.array([5 for i in range(6)]) # 6 # 8 # np.array([5, 6, 6, 8, 8, 3]) #  
+	n_components = np.array([4 for i in range(6)]) # 6 # 8 # np.array([5, 6, 6, 8, 8, 3]) #  
 	pca_list = []
 	for i in range(len(n_components)):
 		pca = PCA(n_components=n_components[i])
@@ -63,7 +63,7 @@ def main():
 			pca.fit(true_shear[:, i%3, :])
 		pca_list.append(pca)
 
-	flag_save = 1
+	flag_save = 0
 
 	if flag_save:
 		import os
