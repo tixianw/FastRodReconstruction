@@ -22,16 +22,12 @@ def main():
 	
 	print('number of markers (excluding the base):', data['n_data_pts'])
 
-	n_elem = data["model"]["n_elem"]
 	L = data["model"]["L"]
 	print('rest length:', L)
-	radius = data["model"]["radius"]
 	s = data["model"]["s"]
 	dl = data["model"]["dl"]
 	nominal_shear = data["model"]["nominal_shear"]
 	idx_data_pts = data["idx_data_pts"]
-	# input_data = data['input_data']
-	# true_pos = data['true_pos']
 	true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	pca = data["pca"]
@@ -44,11 +40,9 @@ def main():
 		[pca[i].transform(true_kappa[:, i, :]) for i in range(num_strain)]
 	)
 
-	# for j in range(min(10, coeffs.shape[1])):
-	# 	plt.figure(0)
-	# 	plt.scatter([j]*len(coeffs), coeffs[:,j], color=color[j], s=20, marker='.')
-	# # plt.show()
-	# # quit()
+	for j in range(min(10, coeffs.shape[1])):
+		plt.figure(0)
+		plt.scatter([j]*len(coeffs), coeffs[:,j], color=color[j], s=20, marker='.')
 
 	coeffs_mean = coeffs.mean(axis=0)
 	coeffs_std = coeffs.std(axis=0)
@@ -61,34 +55,22 @@ def main():
 	)
 	# coeffs_rand = npr.uniform(coeffs_low, coeffs_high, size=(n_training_data, output_size))
 
-	# for j in range(min(10, coeffs.shape[1])):
-	# 	plt.figure(1)
-	# 	plt.scatter([j]*n_training_data, coeffs_rand[:,j], color=color[j], s=20, marker='.')
-	# 	# plt.figure(2)
-	# 	# plt.scatter(np.ones(n_training_data)*j, coeffs_rand2[:,j], color=color[j], s=20, marker='.')
-
-	# # plt.show()
+	for j in range(min(10, coeffs.shape[1])):
+		plt.figure(1)
+		plt.scatter([j]*n_training_data, coeffs_rand[:,j], color=color[j], s=20, marker='.')
 
 	strain_rand = coeff2strain(coeffs_rand, pca)
-	# # print(strain_rand[0].shape, strain_rand[1].shape)
-	# print(strain_rand.shape)
 	posdir_rand = coeff2posdir(coeffs_rand, pca, dl, nominal_shear, true_dir[0,...,0])
-	# print(posdir_rand[0].shape, posdir_rand[1].shape)
 	input_pos = posdir_rand[0][..., idx_data_pts]
 	input_dir = posdir_rand[1][..., idx_data_pts]
 	input_data = pos_dir_to_noisy_input(input_pos, input_dir, noise_level_p=0.02, noise_level_d=0.02, L=L) ## 1 degree is 0.01 level_d
-	# output_dir = np.stack([input_data[:,3:6,:], np.cross(input_data[:,6:9,:], input_data[:,3:6,:], axis=1), input_data[:,6:9,:]], axis=2)
-	# print(np.linalg.norm(input_dir - output_dir), input_dir[0,:,:,0], output_dir[0,:,:,0])
-	# print(input_dir.shape, input_data.shape, output_dir.shape)
-	# quit()
 
 	idx_list = np.random.randint(
 		n_training_data, size=10
-	)  # [i*250 for i in range(10)]
-	print(idx_list)
+	)
 	fig = plt.figure(2)
 	ax = fig.add_subplot(111, projection="3d")
-	fig2, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
+	_, axes = plt.subplots(ncols=3, sharex=True, figsize=(16, 5))
 	for ii in range(len(idx_list)):
 		i = idx_list[ii]
 		ax.plot(

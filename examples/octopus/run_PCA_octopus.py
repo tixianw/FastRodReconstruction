@@ -20,11 +20,10 @@ color = ["C" + str(i) for i in range(10)]
 def main():
 	with resources.path(ASSETS, FILE_NAME_READ) as path:
 		print('Reading file', FILE_NAME_READ, '...')
-		# data = np.load(path, allow_pickle="TRUE").item()
 		with h5py.File(path, 'r') as f:
 			data = {key: f[key][()] for key in f.keys()}
 	
-	n_elem = data["n_elem"] # ["model"]
+	n_elem = data["n_elem"]
 	L = data["L"]
 	radius = data["radius"]
 	s = data["s"]
@@ -34,7 +33,7 @@ def main():
 	shear_matrix = data['shear_matrix']
 	
 	## data point setup
-	n_data_pts = 8  # 5 # exlude the initial point at base
+	n_data_pts = 8 # exlude the initial point at base
 	idx_data_pts = np.array(
 		[int(100 / (n_data_pts)) * i for i in range(1, n_data_pts)] + [-1]
 	)
@@ -48,12 +47,10 @@ def main():
 	input_data = pos_dir_to_input(input_pos, input_dir)
 	print('# of samples in small data set', len(input_data))
 
-	# true_pos = data['true_pos']
-	# true_dir = data['true_dir']
 	true_kappa = data["true_kappa"]
 	true_shear = data['true_shear']
 
-	n_components = np.array([4 for i in range(6)]) # 6 # 8 # np.array([5, 6, 6, 8, 8, 3]) #  
+	n_components = np.array([4 for i in range(6)]) # np.array([5, 6, 6, 8, 8, 3])
 	pca_list = []
 	for i in range(len(n_components)):
 		pca = PCA(n_components=n_components[i])
@@ -94,7 +91,6 @@ def main():
 		np.save(folder_name + '/' + FILE_NAME[:-4], data)
 
 	for i in range(len(n_components)):
-		print('strain', i, ': mean =', pca_list[i].mean.mean(), ', std =', pca_list[i].std.std())
 		plt.figure(i)
 		for j in range(n_components[i]):
 			if i < 3:
@@ -107,4 +103,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-	# main(sys.argv[1])

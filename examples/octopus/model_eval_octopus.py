@@ -12,7 +12,7 @@ import torch
 from time import perf_counter
 from tqdm import tqdm
 from assets import ASSETS
-from file_global import FILE_NAME, MODEL_NAME
+from file_global import FILE_NAME, MODEL_NAME, N_BASIS
 from neural_data_smoothing3D_full import (
 	CurvatureSmoothing3DNet,
 	CurvatureSmoothing3DLoss,
@@ -31,17 +31,17 @@ with resources.path(ASSETS, FILE_NAME) as path:
 user_data_flag = True # False # 
 folder_name = "assets" # 'Data' # 
 if user_data_flag:
-	test_data_name = "training_data_set_octopus_noisy_4basis.npy"
+	training_data_name = "training_data_set_octopus_noisy_%dbasis.npy"%N_BASIS
 	# model_name = 'data_smoothing_model_octopus_test.pt'
-	model_name = 'data_smoothing_model_octopus_new_4basis2' # _3layer_lr0.005' # _batch64' # _test_4basis' # noise2'
+	model_name = 'data_smoothing_model_octopus_test_%dbasis'%N_BASIS
 	idx = 100
 	model_name += '_epoch%03d'%(idx) + '.pt'
 	model_file_path = os.path.join(folder_name, model_name)
-	test_data_file_path = os.path.join(folder_name, test_data_name)
+	training_data_file_path = os.path.join(folder_name, training_data_name)
 	model = torch.load(model_file_path)
 	test_data = data
 	# test_data = np.load(
-	#     test_data_file_path, allow_pickle="TRUE"
+	#     training_data_file_path, allow_pickle="TRUE"
 	# ).item()
 	print('Evalulating user\'s trained model...')
 else:
@@ -57,7 +57,6 @@ radius = data["model"]["radius"]
 s = data["model"]["s"]
 s_mean = _aver(s)
 dl = data["model"]["dl"]
-# nominal_shear = data["model"]["nominal_shear"]
 idx_data_pts = data["idx_data_pts"]
 pca = data["pca"]
 
@@ -87,10 +86,8 @@ print(
 	num_epochs,
 	"batch size:",
 	batch_size,
-	# "regularizations: chi_r=",
-	# tensor_constants.chi_r,
-	# ', chi_d=',
-	# tensor_constants.chi_d,
+	"regularization chi=",
+    tensor_constants.chi_d[0]*8,
 	"min_loss:", min(losses)
 )
 
@@ -100,17 +97,16 @@ plt.semilogy(
 	np.arange(len(vlosses)), vlosses, ls="--", label="validation"
 )
 plt.scatter(len(vlosses), test_loss, s=50, marker="o", color="C3", label="test")
-plt.xlabel("epochs") #  * iterations
+plt.xlabel("epochs")
 plt.ylabel("losses")
 plt.ylim(4e1,3e3)
 plt.legend()
 
-# print(input_data.shape, true_kappa.shape, true_pos.shape, true_shear.shape)
 input_tensor = torch.from_numpy(input_data).float()
 np.random.seed(2024) # 
 idx_list = np.random.randint(
 	len(input_data), size=10
-)  # [i*10 for i in range(6)]
+)
 
 net.eval()
 test_loss = []
